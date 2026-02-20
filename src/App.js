@@ -606,7 +606,7 @@ export default function App() {
 
   const { cases, loading: casesLoading, addCase, updateCase } = useCases();
   const { tasks, loading: tasksLoading, addTask, updateTask, deleteTask, markDone } = useTasks();
-  
+
   if (casesLoading || tasksLoading) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
       <TopNav mod={mod} setMod={setMod}/>
