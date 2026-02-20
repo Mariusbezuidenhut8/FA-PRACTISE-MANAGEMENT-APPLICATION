@@ -9,20 +9,27 @@
 //    → Create database → Start in test mode → Choose a region
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-// ⬇️  REPLACE THIS WITH YOUR OWN CONFIG FROM FIREBASE CONSOLE
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey: "AIzaSyA_ZQPhaCAYptsadY30BeqKuoTk4g0BltY",
+  authDomain: "fa-practise-management.firebaseapp.com",
+  projectId: "fa-practise-management",
+  storageBucket: "fa-practise-management.firebasestorage.app",
+  messagingSenderId: "737419772327",
+  appId: "1:737419772327:web:aac63b9ea59ece80dbb682",
+  measurementId: "G-4RGFVW9PVV"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+const analytics = getAnalytics(app);
+
 
 
