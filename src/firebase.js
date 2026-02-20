@@ -1,8 +1,6 @@
-// 1. Imports from the Firebase SDK
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// 2. Your specific Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyA_ZQPhaCAYptsadY30BeqKuoTk4g0BltY",
   authDomain: "fa-practise-management.firebaseapp.com",
@@ -13,8 +11,5 @@ const firebaseConfig = {
   measurementId: "G-4RGFVW9PVV"
 };
 
-// 3. Initialize the Firebase App
 const app = initializeApp(firebaseConfig);
-
-// 4. Initialize and Export Firestore (The Database)
 export const db = getFirestore(app);
