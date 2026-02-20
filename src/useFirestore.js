@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export const useFirestore = (collectionName) => {
   const [docs, setDocs] = useState([]);
@@ -14,16 +14,27 @@ export const useFirestore = (collectionName) => {
       });
       setDocs(documents);
     });
-
     return () => unsubscribe();
   }, [collectionName]);
 
-  const addDocument = async (doc) => {
-    await addDoc(collection(db, collectionName), {
-      ...doc,
-      createdAt: new Date()
-    });
+  const addDocument = async (data) => {
+    await addDoc(collection(db, collectionName), { ...data, createdAt: new Date() });
   };
 
-  return { docs, addDocument };
+  const updateDocument = async (id, updates) => {
+    const docRef = doc(db, collectionName, id);
+    await updateDoc(docRef, updates);
+  };
+
+  const deleteDocument = async (id) => {
+    const docRef = doc(db, collectionName, id);
+    await deleteDoc(docRef);
+  };
+
+  const markDone = async (id) => {
+    const docRef = doc(db, collectionName, id);
+    await updateDoc(docRef, { dateCompleted: new Date().toISOString().split('T')[0] });
+  };
+
+  return { docs, addDocument, updateDocument, deleteDocument, markDone };
 };
