@@ -605,8 +605,7 @@ export default function App() {
   const [mod, setMod] = useState("dashboard");
 
   const { cases, loading: casesLoading, addCase, updateCase } = useCases();
-  const { tasks, loading: tasksLoading, addTask, updateTask, markDone } = useTasks();
-const { tasks, loading: tasksLoading, addTask, updateTask, deleteTask, markDone } = useTasks();
+  const { tasks, loading: tasksLoading, addTask, updateTask, deleteTask, markDone } = useTasks();
   
   if (casesLoading || tasksLoading) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
