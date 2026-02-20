@@ -340,7 +340,6 @@ function PipelineModule({cases,addCase,updateCase}){
   const liveIdx=liveCase?STAGES.findIndex(s=>s.id===liveCase.stage):0;
 
   if(view==="detail"&&liveCase){
-    const sc=C.stages[liveCase.stage];
     const cl=CHECKLISTS[liveCase.stage]?.[role]||[];
     const em=EMAILS[liveCase.stage]||[];
     const dc=DOCS[liveCase.stage]||[];
