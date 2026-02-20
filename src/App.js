@@ -1,4 +1,3 @@
-
 // src/App.js
 // ADVISE Practice Manager — Firebase-connected version
 // Data now saves permanently to Firestore instead of in-memory state
@@ -606,7 +605,7 @@ function ClientView({pipeline,tasks}){
 export default function App() {
   const [mod, setMod] = useState("dashboard");
   const { cases, loading: casesLoading, addCase, updateCase, deleteCase } = useCases();
-  const { tasks, loading: tasksLoading, addTask, updateTask, deleteTask, markDone } = useTasks();
+const { cases, loading: casesLoading, addCase, updateCase } = useCases();
 
   if (casesLoading || tasksLoading) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
