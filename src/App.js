@@ -625,13 +625,4 @@ export default function App() {
   );
 }
 
-  return (
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
-      <TopNav mod={mod} setMod={setMod}/>
-      {mod==="dashboard" && <Dashboard cases={cases} updateCase={updateCase} tasks={tasks} setMod={setMod}/>}
-      {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase}/>}
-      {mod==="cita"      && <CitaModule tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone}/>}
-      {mod==="client"    && <ClientView pipeline={cases} tasks={tasks}/>}
-    </div>
-  );
-}
+ 
