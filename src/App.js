@@ -333,11 +333,26 @@ const [newAdvisorTitle, setNewAdvisorTitle] = useState("");
     if(idx<STAGES.length-1)await updateCase(c.id,{stage:STAGES[idx+1].id});
   };
 
-  const handleAdd=async()=>{
-    if(!newName.trim())return;
-    await addCase({name:newName.trim(),stage:"lead",advisor:newAdv,urgent:false,nextAction:"action_book_meeting",nextNote:"Book initial engagement appointment",dueDate:fwd(2)});
-    setNewName("");setShowAdd(false);
-  };
+  const handleAdd = async () => {
+  if (!newName.trim()) return;
+
+  await addCase({
+    name: newName.trim(),
+    stage: "lead",
+    advisor: newAdv, // existing RM/MK code
+    advisorName: newAdvisorName.trim(),
+    advisorTitle: newAdvisorTitle.trim(),
+    urgent: false,
+    nextAction: "action_book_meeting",
+    nextNote: "Book initial engagement appointment",
+    dueDate: fwd(2),
+  });
+
+  setNewName("");
+  setNewAdvisorName("");
+  setNewAdvisorTitle("");
+  setShowAdd(false);
+};
 
   const liveCase=sel?cases.find(c=>c.id===sel.id)||sel:null;
   const liveIdx=liveCase?STAGES.findIndex(s=>s.id===liveCase.stage):0;
