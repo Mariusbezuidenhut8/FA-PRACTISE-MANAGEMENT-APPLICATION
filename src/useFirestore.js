@@ -1,8 +1,8 @@
-// src/useFirestore.js
+/import { useState, useEffect } from 'react';
+import { db } from './firebase';
+import { collection, addDoc, onSnapshot, query, orderBy } from 'firebase/firestore';/ src/useFirestore.js
 // Custom hooks that replace in-memory state with real Firebase Firestore data
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { useState, useEffect } from "react";
 import {
   collection,
   onSnapshot,
