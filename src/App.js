@@ -320,7 +320,17 @@ function PipelineModule({cases,addCase,updateCase}){
   const [newAdv,setNewAdv]=useState("RM");
   const [editNext,setEditNext]=useState(false);
   const [nextForm,setNextForm]=useState({nextAction:"on_track",nextNote:"",dueDate:""});
+<input
+  placeholder="Advisor Name"
+  value={form.advisorName || ""}
+  onChange={e => setForm({...form, advisorName: e.target.value})}
+/>
 
+<input
+  placeholder="Advisor Title"
+  value={form.advisorTitle || ""}
+  onChange={e => setForm({...form, advisorTitle: e.target.value})}
+/>
   const toggle=(cId,stg,r,i)=>{const k=`${cId}-${stg}-${r}-${i}`;setChecks(p=>({...p,[k]:!p[k]}));};
   const isChk=(cId,stg,r,i)=>!!checks[`${cId}-${stg}-${r}-${i}`];
   const pct=(c)=>{const l=CHECKLISTS[c.stage]?.[role]||[];if(!l.length)return 0;return Math.round(l.filter((_,i)=>isChk(c.id,c.stage,role,i)).length/l.length*100);};
