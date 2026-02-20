@@ -603,8 +603,9 @@ function ClientView({pipeline,tasks}){
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mod, setMod] = useState("dashboard");
-  const { cases, loading: casesLoading, addCase, updateCase, deleteCase } = useCases();
-const { cases, loading: casesLoading, addCase, updateCase } = useCases();
+
+  const { cases, loading: casesLoading, addCase, updateCase } = useCases();
+  const { tasks, loading: tasksLoading, addTask, updateTask, markDone } = useTasks();
 
   if (casesLoading || tasksLoading) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
@@ -612,6 +613,17 @@ const { cases, loading: casesLoading, addCase, updateCase } = useCases();
       <Spinner/>
     </div>
   );
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
+      <TopNav mod={mod} setMod={setMod}/>
+      {mod==="dashboard" && <Dashboard cases={cases} updateCase={updateCase} tasks={tasks} setMod={setMod}/>}
+      {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase}/>}
+      {mod==="cita"      && <CitaModule tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone}/>}
+      {mod==="client"    && <ClientView pipeline={cases} tasks={tasks}/>}
+    </div>
+  );
+}
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
