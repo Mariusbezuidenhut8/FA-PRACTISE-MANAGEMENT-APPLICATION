@@ -1,40 +1,47 @@
-import { useState, useEffect } from 'react';
-import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+// src/useFirestore.js
+import { useEffect, useState } from "react";
+import { db } from "./firebase"; // adjust path
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
-export const useFirestore = (collectionName) => {
-  const [docs, setDocs] = useState([]);
+export function useCases() {
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let documents = [];
-      snapshot.forEach(doc => {
-        documents.push({ ...doc.data(), id: doc.id });
-      });
-      setDocs(documents);
+    const unsub = onSnapshot(collection(db, "cases"), (snap) => {
+      setCases(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
     });
-    return () => unsubscribe();
-  }, [collectionName]);
+    return () => unsub();
+  }, []);
 
-  const addDocument = async (data) => {
-    await addDoc(collection(db, collectionName), { ...data, createdAt: new Date() });
-  };
+  const addCase = (data) => addDoc(collection(db, "cases"), data);
+  const updateCase = (id, data) => updateDoc(doc(db, "cases", id), data);
+  const deleteCase = (id) => deleteDoc(doc(db, "cases", id));
 
-  const updateDocument = async (id, updates) => {
-    const docRef = doc(db, collectionName, id);
-    await updateDoc(docRef, updates);
-  };
+  return { cases, loading, addCase, updateCase, deleteCase };
+}
 
-  const deleteDocument = async (id) => {
-    const docRef = doc(db, collectionName, id);
-    await deleteDoc(docRef);
-  };
+export function useTasks() {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const markDone = async (id) => {
-    const docRef = doc(db, collectionName, id);
-    await updateDoc(docRef, { dateCompleted: new Date().toISOString().split('T')[0] });
-  };
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "tasks"), (snap) => {
+      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
-  return { docs, addDocument, updateDocument, deleteDocument, markDone };
-};
+  const addTask = (data) => addDoc(collection(db, "tasks"), data);
+  const updateTask = (id, data) => updateDoc(doc(db, "tasks", id), data);
+  const deleteTask = (id) => deleteDoc(doc(db, "tasks", id), id);
+
+  // or implement properly:
+  // const deleteTask = (id) => deleteDoc(doc(db, "tasks", id));
+
+  const markDone = (id) => updateDoc(doc(db, "tasks", id), { dateCompleted: new Date().toISOString().slice(0,10) });
+
+  return { tasks, loading, addTask, updateTask, deleteTask, markDone };
+}
