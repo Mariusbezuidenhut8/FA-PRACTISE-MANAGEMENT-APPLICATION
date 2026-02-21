@@ -119,12 +119,6 @@ function getTaskStatus(t) {
 function initials(n){ return n.split(/[\s,]+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(""); }
 const NA = (id) => NEXT_ACTIONS.find(a=>a.id===id) || NEXT_ACTIONS[NEXT_ACTIONS.length-1];
 
-// assign a consistent colour to each team member by index
-function memberColor(member, team) {
-  const idx = team.findIndex(t => t.id === member?.id);
-  return ROLE_COLORS[idx % ROLE_COLORS.length] || "#64748B";
-}
-
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const iS  = {width:"100%",border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 12px",fontSize:13.5,outline:"none",background:C.faint,boxSizing:"border-box",fontFamily:"inherit"};
 const selS = {...iS,appearance:"none"};
@@ -159,20 +153,6 @@ function Modal({title,onClose,children}){
 }
 function Field({label,children}){
   return <div style={{marginBottom:16}}><label style={{display:"block",fontSize:10,fontWeight:800,color:C.muted,letterSpacing:1.2,marginBottom:6}}>{label}</label>{children}</div>;
-}
-
-// Advisor dropdown built from live team data
-function AdvisorSelect({value, onChange, team, style={}, includeAll=false}){
-  const advisors = team.filter(m => m.active !== false);
-  return(
-    <select value={value} onChange={onChange} style={{...selS,...style}}>
-      {includeAll && <option value="All">All Advisors</option>}
-      {advisors.map(m=>(
-        <option key={m.id} value={m.id}>{m.name} ({ROLES.find(r=>r.id===m.role)?.label.split(" ")[0] || m.role})</option>
-      ))}
-      {advisors.length===0 && <option value="">No team members yet</option>}
-    </select>
-  );
 }
 
 // ─── TOP NAV ──────────────────────────────────────────────────────────────────
@@ -624,7 +604,6 @@ function PipelineModule({cases,addCase,updateCase,team}){
     const em=EMAILS[liveCase.stage]||[];
     const dc=DOCS[liveCase.stage]||[];
     const na=NA(liveCase.nextAction);
-    const sc=C.stages[liveCase.stage];
     return(
       <div style={{padding:"24px 32px",maxWidth:1060,margin:"0 auto"}}>
         {editNext&&(
@@ -883,12 +862,11 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
 function ClientView({pipeline,tasks,team}){
   const [search,setSearch]=useState("");
   const [sel,setSel]=useState(null);
-  const advisorName=(id,fallback)=>{const m=team.find(t=>t.id===id);return m?(m.name):(fallback||"—");};
-
   const allClients=useMemo(()=>{
+    const resolveName=(id,fallback)=>{const m=team.find(t=>t.id===id);return m?m.name:(fallback||"—");};
     const map={};
-    pipeline.forEach(c=>{map[c.name]={...map[c.name],name:c.name,advisor:advisorName(c.advisorId,c.advisor),pipelineCase:c};});
-    tasks.forEach(t=>{if(!map[t.client])map[t.client]={name:t.client,advisor:advisorName(t.advisorId,t.advisor)};map[t.client].tasks=[...(map[t.client].tasks||[]),t];});
+    pipeline.forEach(c=>{map[c.name]={...map[c.name],name:c.name,advisor:resolveName(c.advisorId,c.advisor),pipelineCase:c};});
+    tasks.forEach(t=>{if(!map[t.client])map[t.client]={name:t.client,advisor:resolveName(t.advisorId,t.advisor)};map[t.client].tasks=[...(map[t.client].tasks||[]),t];});
     return Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
   },[pipeline,tasks,team]);
 
