@@ -6,7 +6,6 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-
 const firebaseConfig = {
   apiKey: "AIzaSyA_ZQPhaCAYptsadY30BeqKuoTk4g0BltY",
   authDomain: "fa-practise-management.firebaseapp.com",
