@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyA_ZQPhaCAYptsadY30BeqKuoTk4g0BltY",
