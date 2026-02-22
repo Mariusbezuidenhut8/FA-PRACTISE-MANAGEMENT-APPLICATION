@@ -25,5 +25,11 @@ export const storage = getStorage(app);
 
 // Debug auth state (safe)
 onAuthStateChanged(auth, (user) => {
-  console.log("AUTH STATE:", user ? user.uid : null);
+  if (!user) {
+    signInAnonymously(auth)
+      .then(() => console.log("Signed in anonymously"))
+      .catch((error) => console.error("Anon sign-in failed", error));
+  } else {
+    console.log("AUTH UID:", user.uid);
+  }
 });
