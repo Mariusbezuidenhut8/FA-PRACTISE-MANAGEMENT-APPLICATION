@@ -14,11 +14,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-getAuth(app)
-getStorage(app)
-
 
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Optional debug (NO imports here)
+onAuthStateChanged(auth, (user) => {
+  console.log("AUTH STATE:", user ? user.uid : null, user);
+});
 
 // DEBUG:
 auth.onAuthStateChanged((user) => {
