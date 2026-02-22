@@ -1,6 +1,6 @@
-// src/App.js — ADVISE Practice Manager with Team Management
-import { useState, useMemo } from "react";
-import { useCases, useTasks, useTeam } from "./useFirestore";
+// src/App.js — ADVISE Practice Manager with Team Management + Practice Library
+import { useState, useMemo, useRef } from "react";
+import { useCases, useTasks, useTeam, useDocuments } from "./useFirestore";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -238,6 +238,7 @@ function TopNav({mod,setMod}){
     {id:"cita",     label:"📋  Admin Tracker"},
     {id:"client",   label:"👤  Client View"},
     {id:"team",     label:"👥  Team"},
+    {id:"library",  label:"📁  Library"},
   ];
   return(
     <div style={{background:C.navy,color:"#fff",height:62,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",position:"sticky",top:0,zIndex:200}}>
@@ -252,7 +253,7 @@ function TopNav({mod,setMod}){
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setMod(t.id)} style={{
             padding:"7px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:800,transition:"all 0.15s",
-            background:mod===t.id?(t.id==="dashboard"?C.dash:t.id==="pipeline"?C.pipeline:t.id==="cita"?C.cita:t.id==="team"?C.team:"#7C3AED"):"transparent",
+            background:mod===t.id?(t.id==="dashboard"?C.dash:t.id==="pipeline"?C.pipeline:t.id==="cita"?C.cita:t.id==="team"?C.team:t.id==="library"?"#0F766E":"#7C3AED"):"transparent",
             color:mod===t.id?"#fff":"#94A3B8",
           }}>{t.label}</button>
         ))}
@@ -1090,12 +1091,249 @@ function ClientView({pipeline,tasks,team}){
   );
 }
 
+// ─── PRACTICE LIBRARY ─────────────────────────────────────────────────────────
+const DOC_CATS = [
+  {id:"disclosure",    label:"Disclosure Letters",   icon:"📋", color:"#2563EB"},
+  {id:"fee_agreement", label:"Fee Agreements",        icon:"💰", color:"#059669"},
+  {id:"application",   label:"Application Forms",    icon:"📝", color:"#D97706"},
+  {id:"compliance",    label:"Compliance Documents", icon:"🛡️", color:"#7C3AED"},
+  {id:"templates",     label:"Email Templates",      icon:"✉️", color:"#0891B2"},
+  {id:"product",       label:"Product Information",  icon:"📊", color:"#DB2777"},
+  {id:"client",        label:"Client Documents",     icon:"👤", color:"#374151"},
+  {id:"other",         label:"Other",                icon:"📁", color:"#94A3B8"},
+];
+
+function formatBytes(b){
+  if(!b)return"";
+  if(b<1024)return`${b} B`;
+  if(b<1048576)return`${(b/1024).toFixed(1)} KB`;
+  return`${(b/1048576).toFixed(1)} MB`;
+}
+function fileIcon(type){
+  if(!type)return"📄";
+  if(type.includes("pdf"))return"📕";
+  if(type.includes("word")||type.includes("docx"))return"📘";
+  if(type.includes("sheet")||type.includes("xlsx")||type.includes("csv"))return"📗";
+  if(type.includes("image"))return"🖼️";
+  if(type.includes("presentation")||type.includes("pptx"))return"📙";
+  return"📄";
+}
+
+function LibraryModule({documents, loading, uploadDocument, deleteDocument, team}){
+  const [filterCat,setFilterCat]    = useState("all");
+  const [filterAdv,setFilterAdv]    = useState("all");
+  const [search,setSearch]          = useState("");
+  const [showUpload,setShowUpload]  = useState(false);
+  const [uploading,setUploading]    = useState(false);
+  const [uploadPct,setUploadPct]    = useState(0);
+  const [dragOver,setDragOver]      = useState(false);
+  const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+  const [pendingFile,setPendingFile]= useState(null);
+  const fileInputRef                = useRef(null);
+
+  const filtered = useMemo(()=>documents.filter(d=>{
+    if(filterCat!=="all"&&d.category!==filterCat)return false;
+    if(filterAdv!=="all"&&d.advisorId!==filterAdv&&d.advisorId!=="all")return false;
+    if(search&&!d.fileName.toLowerCase().includes(search.toLowerCase())&&!d.description?.toLowerCase().includes(search.toLowerCase()))return false;
+    return true;
+  }),[documents,filterCat,filterAdv,search]);
+
+  const handleFiles = (files) => {
+    if(files&&files[0]){setPendingFile(files[0]);setShowUpload(true);}
+  };
+
+  const doUpload = async () => {
+    if(!pendingFile)return;
+    setUploading(true);setUploadPct(0);
+    try{
+      const adv = team.find(t=>t.id===form.advisorId);
+      await uploadDocument(pendingFile,{
+        category:    form.category,
+        advisorId:   form.isAdvisorSpecific?form.advisorId:"all",
+        advisorName: form.isAdvisorSpecific&&adv?adv.name:"All Advisors",
+        description: form.description,
+        uploadedBy:  "Team",
+      },(pct)=>setUploadPct(pct));
+      setShowUpload(false);setPendingFile(null);
+      setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+    }catch(e){alert("Upload failed. Please try again.");}
+    setUploading(false);
+  };
+
+  const handleDelete = async(doc)=>{
+    if(!window.confirm(`Delete "${doc.fileName}"? This cannot be undone.`))return;
+    await deleteDocument(doc);
+  };
+
+  const groupedByCategory = DOC_CATS.map(cat=>({
+    ...cat,
+    docs: filtered.filter(d=>d.category===cat.id),
+  })).filter(g=>filterCat==="all"?g.docs.length>0:g.id===filterCat);
+
+  return(
+    <div style={{padding:"28px 32px",maxWidth:1060,margin:"0 auto"}}>
+      {showUpload&&(
+        <Modal title={`Upload Document${pendingFile?` — ${pendingFile.name}`:""}`} onClose={()=>{if(!uploading){setShowUpload(false);setPendingFile(null);}}}>
+          {pendingFile&&(
+            <div style={{display:"flex",alignItems:"center",gap:12,background:C.faint,borderRadius:10,padding:"12px 16px",marginBottom:20}}>
+              <span style={{fontSize:28}}>{fileIcon(pendingFile.type)}</span>
+              <div>
+                <div style={{fontWeight:800,fontSize:13}}>{pendingFile.name}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:2}}>{formatBytes(pendingFile.size)}</div>
+              </div>
+            </div>
+          )}
+          <Field label="DOCUMENT CATEGORY">
+            <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={selS}>
+              {DOC_CATS.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+            </select>
+          </Field>
+          <Field label="DESCRIPTION (optional)">
+            <input value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} style={iS} placeholder="e.g. Marius Bezuidenhout — 2025 Disclosure Letter"/>
+          </Field>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div onClick={()=>setForm(p=>({...p,isAdvisorSpecific:!p.isAdvisorSpecific}))} style={{width:44,height:24,borderRadius:12,background:form.isAdvisorSpecific?"#2563EB":"#D1D5DB",cursor:"pointer",position:"relative",transition:"background 0.2s"}}>
+              <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:form.isAdvisorSpecific?23:3,transition:"left 0.2s"}}/>
+            </div>
+            <span style={{fontSize:13,fontWeight:700,color:form.isAdvisorSpecific?C.pipeline:C.muted}}>Link to a specific advisor</span>
+          </div>
+          {form.isAdvisorSpecific&&(
+            <Field label="ADVISOR">
+              <select value={form.advisorId} onChange={e=>setForm(p=>({...p,advisorId:e.target.value}))} style={selS}>
+                <option value="all">Select advisor…</option>
+                {team.filter(m=>m.active!==false).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </Field>
+          )}
+          {uploading?(
+            <div style={{marginTop:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:700,marginBottom:6}}>
+                <span style={{color:C.cita}}>Uploading…</span>
+                <span>{uploadPct}%</span>
+              </div>
+              <div style={{height:8,background:C.faint,borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${uploadPct}%`,background:C.cita,borderRadius:4,transition:"width 0.3s"}}/>
+              </div>
+            </div>
+          ):(
+            <button onClick={doUpload} disabled={!pendingFile} style={{width:"100%",background:"#0F766E",color:"#fff",border:"none",borderRadius:9,padding:"12px 0",fontWeight:900,cursor:"pointer",fontSize:14,marginTop:8,opacity:pendingFile?1:0.5}}>
+              ⬆️  Upload to Practice Library
+            </button>
+          )}
+        </Modal>
+      )}
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
+        <div>
+          <h2 style={{margin:0,fontFamily:"Georgia,serif",fontSize:22,fontWeight:900}}>Practice Library</h2>
+          <div style={{fontSize:12,color:C.muted,marginTop:4}}>{documents.length} document{documents.length!==1?"s":""} stored</div>
+        </div>
+        <button onClick={()=>fileInputRef.current?.click()} style={{background:"#0F766E",color:"#fff",border:"none",borderRadius:9,padding:"10px 22px",cursor:"pointer",fontWeight:900,fontSize:13}}>
+          ⬆️  Upload Document
+        </button>
+        <input ref={fileInputRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.csv"
+          onChange={e=>handleFiles(e.target.files)}/>
+      </div>
+
+      {/* Drag and drop zone */}
+      <div
+        onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+        onDragLeave={()=>setDragOver(false)}
+        onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(e.dataTransfer.files);}}
+        style={{border:`2px dashed ${dragOver?"#0F766E":C.border}`,borderRadius:14,padding:"20px 0",textAlign:"center",marginBottom:22,background:dragOver?"#F0FDF4":C.surface,transition:"all 0.2s",cursor:"pointer"}}
+        onClick={()=>fileInputRef.current?.click()}>
+        <div style={{fontSize:28,marginBottom:6}}>📂</div>
+        <div style={{fontSize:13,fontWeight:700,color:dragOver?"#0F766E":C.muted}}>Drag & drop files here, or click to browse</div>
+        <div style={{fontSize:11,color:C.muted,marginTop:3}}>PDF, Word, Excel, PowerPoint, Images</div>
+      </div>
+
+      {/* Filters */}
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search documents…" style={{...iS,width:220,background:C.surface}}/>
+        {team.length>0&&(
+          <select value={filterAdv} onChange={e=>setFilterAdv(e.target.value)} style={{...selS,width:180,background:C.surface}}>
+            <option value="all">All Advisors</option>
+            {team.filter(m=>m.active!==false).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        )}
+      </div>
+
+      {/* Category pills */}
+      <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+        <button onClick={()=>setFilterCat("all")} style={{padding:"5px 14px",borderRadius:20,border:`1px solid ${filterCat==="all"?"#0F766E":C.border}`,background:filterCat==="all"?"#0F766E":C.surface,color:filterCat==="all"?"#fff":C.muted,fontSize:11,fontWeight:800,cursor:"pointer"}}>All ({documents.length})</button>
+        {DOC_CATS.map(cat=>{
+          const cnt=documents.filter(d=>d.category===cat.id).length;
+          if(cnt===0&&filterCat!==cat.id)return null;
+          const active=filterCat===cat.id;
+          return(
+            <button key={cat.id} onClick={()=>setFilterCat(active?"all":cat.id)} style={{padding:"5px 14px",borderRadius:20,border:`1px solid ${active?cat.color:C.border}`,background:active?cat.color:C.surface,color:active?"#fff":C.muted,fontSize:11,fontWeight:800,cursor:"pointer"}}>
+              {cat.icon} {cat.label} ({cnt})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Document groups */}
+      {loading&&<div style={{textAlign:"center",padding:"40px 0",color:C.muted}}>Loading library…</div>}
+      {!loading&&filtered.length===0&&(
+        <Card style={{textAlign:"center",padding:"60px 0"}}>
+          <div style={{fontSize:40,marginBottom:12}}>📁</div>
+          <div style={{fontSize:15,fontWeight:800,marginBottom:6}}>No documents yet</div>
+          <div style={{fontSize:13,color:C.muted,marginBottom:20}}>Upload your disclosure letters, fee agreements, forms and templates</div>
+          <button onClick={()=>fileInputRef.current?.click()} style={{background:"#0F766E",color:"#fff",border:"none",borderRadius:9,padding:"10px 24px",cursor:"pointer",fontWeight:900,fontSize:13}}>⬆️  Upload First Document</button>
+        </Card>
+      )}
+
+      {groupedByCategory.map(grp=>(
+        <div key={grp.id} style={{marginBottom:24}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <span style={{fontSize:18}}>{grp.icon}</span>
+            <span style={{fontWeight:900,fontSize:15,fontFamily:"Georgia,serif"}}>{grp.label}</span>
+            <span style={{fontSize:11,color:C.muted,fontWeight:700}}>({grp.docs.length})</span>
+            <div style={{flex:1,height:1,background:C.border}}/>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+            {grp.docs.map(doc=>{
+              const uploadDate=doc.uploadedAt?.toDate?.()?.toLocaleDateString("en-ZA",{day:"2-digit",month:"short",year:"numeric"})||"—";
+              return(
+                <div key={doc.id} style={{background:C.surface,borderRadius:12,padding:"16px 18px",boxShadow:"0 1px 5px rgba(0,0,0,0.06)",borderLeft:`4px solid ${grp.color}`,display:"flex",flexDirection:"column",gap:10}}>
+                  <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <span style={{fontSize:28,flexShrink:0}}>{fileIcon(doc.fileType)}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:800,fontSize:13,lineHeight:1.4,wordBreak:"break-word"}}>{doc.fileName}</div>
+                      {doc.description&&<div style={{fontSize:11,color:C.muted,marginTop:3,lineHeight:1.4}}>{doc.description}</div>}
+                      <div style={{display:"flex",gap:8,marginTop:6,flexWrap:"wrap"}}>
+                        {doc.advisorId!=="all"&&<Badge color={{bg:"#DBEAFE",text:"#1E40AF"}}>{doc.advisorName}</Badge>}
+                        {doc.advisorId==="all"&&<Badge color={{bg:"#F3F4F6",text:"#374151"}}>All Advisors</Badge>}
+                        <Badge color={{bg:"#F3F4F6",text:"#6B7280"}}>{formatBytes(doc.fileSize)}</Badge>
+                      </div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:5}}>Uploaded {uploadDate}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer" style={{flex:1,background:"#0F766E",color:"#fff",border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",fontWeight:800,fontSize:12,textDecoration:"none",textAlign:"center",display:"block"}}>
+                      👁️ Open / Download
+                    </a>
+                    <button onClick={()=>handleDelete(doc)} style={{background:"#FEE2E2",color:"#991B1B",border:"none",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>🗑</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mod,setMod] = useState("dashboard");
-  const { cases,  loading:cL, addCase,  updateCase  } = useCases();
-  const { tasks,  loading:tL, addTask,  updateTask, deleteTask, markDone } = useTasks();
-  const { team,   loading:mL, addMember, updateMember, deleteMember }      = useTeam();
+  const { cases,     loading:cL, addCase,       updateCase                          } = useCases();
+  const { tasks,     loading:tL, addTask,       updateTask,  deleteTask, markDone   } = useTasks();
+  const { team,      loading:mL, addMember,     updateMember, deleteMember          } = useTeam();
+  const { documents, loading:dL, uploadDocument, deleteDocument                     } = useDocuments();
 
   if (cL||tL||mL) return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
@@ -1107,11 +1345,12 @@ export default function App() {
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
       <TopNav mod={mod} setMod={setMod}/>
-      {mod==="dashboard" && <Dashboard  cases={cases} updateCase={updateCase} tasks={tasks} team={team} setMod={setMod}/>}
+      {mod==="dashboard" && <Dashboard    cases={cases} updateCase={updateCase} tasks={tasks} team={team} setMod={setMod}/>}
       {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase} team={team}/>}
-      {mod==="cita"      && <CitaModule tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone} team={team}/>}
-      {mod==="client"    && <ClientView pipeline={cases} tasks={tasks} team={team}/>}
-      {mod==="team"      && <TeamModule team={team} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember} cases={cases} tasks={tasks}/>}
+      {mod==="cita"      && <CitaModule   tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone} team={team}/>}
+      {mod==="client"    && <ClientView   pipeline={cases} tasks={tasks} team={team}/>}
+      {mod==="team"      && <TeamModule   team={team} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember} cases={cases} tasks={tasks}/>}
+      {mod==="library"   && <LibraryModule documents={documents} loading={dL} uploadDocument={uploadDocument} deleteDocument={deleteDocument} team={team}/>}
     </div>
   );
 }
