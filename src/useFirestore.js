@@ -4,7 +4,10 @@ import {
   collection, onSnapshot, addDoc, updateDoc,
   deleteDoc, doc, serverTimestamp, query, orderBy,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import {
+  ref, uploadBytesResumable, getDownloadURL, deleteObject,
+} from "firebase/storage";
+import { db, storage } from "./firebase";
 
 // ── Cases (Pipeline) ──────────────────────────────────────────────────────────
 export function useCases() {
@@ -60,4 +63,59 @@ export function useTeam() {
   const updateMember = (id, data) => updateDoc(doc(db, "team", id), data);
   const deleteMember = (id) => deleteDoc(doc(db, "team", id));
   return { team, loading, addMember, updateMember, deleteMember };
+}
+
+// ── Practice Library (Documents) ─────────────────────────────────────────────
+export function useDocuments() {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, "documents"), orderBy("uploadedAt", "desc"));
+    return onSnapshot(q, (snap) => {
+      setDocuments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+  }, []);
+
+  // Upload file to Storage + save metadata to Firestore
+  const uploadDocument = (file, meta, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const storageRef = ref(storage, `documents/${meta.category}/${safeName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        (snap) => {
+          const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          if (onProgress) onProgress(pct);
+        },
+        (err) => reject(err),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          const docRef = await addDoc(collection(db, "documents"), {
+            ...meta,
+            fileName:    file.name,
+            fileSize:    file.size,
+            fileType:    file.type,
+            storagePath: uploadTask.snapshot.ref.fullPath,
+            downloadURL: url,
+            uploadedAt:  serverTimestamp(),
+          });
+          resolve(docRef);
+        }
+      );
+    });
+  };
+
+  // Delete from Storage + Firestore
+  const deleteDocument = async (document) => {
+    if (document.storagePath) {
+      try { await deleteObject(ref(storage, document.storagePath)); } catch (e) { /* already gone */ }
+    }
+    await deleteDoc(doc(db, "documents", document.id));
+  };
+
+  return { documents, loading, uploadDocument, deleteDocument };
 }
