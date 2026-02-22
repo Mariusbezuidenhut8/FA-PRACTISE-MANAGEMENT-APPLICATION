@@ -15,15 +15,50 @@ const C = {
     implementation:{dot:"#D97706",bg:"#FEF3C7",text:"#92400E"},
   },
   cats:{
-    urgent:     {bg:"#FEE2E2",text:"#991B1B",dot:"#DC2626",icon:"🚨"},
-    minutes:    {bg:"#EDE9FE",text:"#5B21B6",dot:"#7C3AED",icon:"📋"},
-    admin:      {bg:"#DBEAFE",text:"#1E40AF",dot:"#2563EB",icon:"⚙️"},
-    instruction:{bg:"#D1FAE5",text:"#065F46",dot:"#059669",icon:"📝"},
-    pso_psi:    {bg:"#FEF3C7",text:"#92400E",dot:"#D97706",icon:"🔄"},
-    switches:   {bg:"#FCE7F3",text:"#9D174D",dot:"#DB2777",icon:"↔️"},
-    wills:      {bg:"#F0FDF4",text:"#14532D",dot:"#16A34A",icon:"📜"},
-    resigned:   {bg:"#FFF7ED",text:"#9A3412",dot:"#EA580C",icon:"🚪"},
-    estate:     {bg:"#F1F5F9",text:"#334155",dot:"#64748B",icon:"⚖️"},
+    // ── Priority ──────────────────────────────────────────────────────────────
+    urgent:        {bg:"#FEE2E2",text:"#991B1B",dot:"#DC2626",icon:"🚨"},
+    // ── Investment / Retirement ───────────────────────────────────────────────
+    minutes:       {bg:"#EDE9FE",text:"#5B21B6",dot:"#7C3AED",icon:"📋"},
+    admin:         {bg:"#DBEAFE",text:"#1E40AF",dot:"#2563EB",icon:"⚙️"},
+    instruction:   {bg:"#D1FAE5",text:"#065F46",dot:"#059669",icon:"📝"},
+    pso_psi:       {bg:"#FEF3C7",text:"#92400E",dot:"#D97706",icon:"🔄"},
+    switches:      {bg:"#FCE7F3",text:"#9D174D",dot:"#DB2777",icon:"↔️"},
+    implementation:{bg:"#E0F2FE",text:"#075985",dot:"#0284C7",icon:"🚀"},
+    sec14:         {bg:"#FEF9C3",text:"#854D0E",dot:"#CA8A04",icon:"📤"},
+    tfsa:          {bg:"#F0FDF4",text:"#14532D",dot:"#16A34A",icon:"💚"},
+    directive135:  {bg:"#F5F3FF",text:"#4C1D95",dot:"#7C3AED",icon:"📑"},
+    income_review: {bg:"#FFF7ED",text:"#9A3412",dot:"#EA580C",icon:"💰"},
+    structured_note:{bg:"#F0F9FF",text:"#0C4A6E",dot:"#0369A1",icon:"📊"},
+    // ── Reviews ───────────────────────────────────────────────────────────────
+    review_a:      {bg:"#ECFDF5",text:"#065F46",dot:"#059669",icon:"⭐"},
+    review_b:      {bg:"#F0FDF4",text:"#14532D",dot:"#16A34A",icon:"🔵"},
+    review_c:      {bg:"#EFF6FF",text:"#1E40AF",dot:"#3B82F6",icon:"🔷"},
+    review_d:      {bg:"#F5F3FF",text:"#5B21B6",dot:"#8B5CF6",icon:"🔹"},
+    review_st:     {bg:"#FFF7ED",text:"#92400E",dot:"#F59E0B",icon:"📅"},
+    // ── Short-Term Insurance (STI) ────────────────────────────────────────────
+    sti_claims:    {bg:"#FEE2E2",text:"#991B1B",dot:"#EF4444",icon:"🛡️"},
+    sti_renewal:   {bg:"#FEF3C7",text:"#92400E",dot:"#F59E0B",icon:"🔁"},
+    sti_underwriting:{bg:"#EDE9FE",text:"#5B21B6",dot:"#8B5CF6",icon:"✍️"},
+    sti_unpaid:    {bg:"#FFF1F2",text:"#9F1239",dot:"#E11D48",icon:"⚠️"},
+    // ── Employee Benefits (EB) ────────────────────────────────────────────────
+    eb_servicing:  {bg:"#DBEAFE",text:"#1E40AF",dot:"#2563EB",icon:"🏢"},
+    eb_new_lead:   {bg:"#D1FAE5",text:"#065F46",dot:"#059669",icon:"🤝"},
+    eb_underwriting:{bg:"#EDE9FE",text:"#5B21B6",dot:"#7C3AED",icon:"📄"},
+    eb_claims:     {bg:"#FEE2E2",text:"#991B1B",dot:"#DC2626",icon:"🏥"},
+    eb_referral:   {bg:"#CFFAFE",text:"#0E7490",dot:"#0891B2",icon:"📨"},
+    eb_withdrawal: {bg:"#FFF7ED",text:"#9A3412",dot:"#EA580C",icon:"🏦"},
+    eb_sec14:      {bg:"#FEF9C3",text:"#854D0E",dot:"#CA8A04",icon:"🔀"},
+    eb_rf_lead:    {bg:"#F0FDF4",text:"#14532D",dot:"#16A34A",icon:"🏗️"},
+    eb_rf_review:  {bg:"#EFF6FF",text:"#1E40AF",dot:"#3B82F6",icon:"📆"},
+    // ── Healthcare ────────────────────────────────────────────────────────────
+    healthcare:    {bg:"#ECFDF5",text:"#065F46",dot:"#10B981",icon:"❤️"},
+    // ── Other ─────────────────────────────────────────────────────────────────
+    wills:         {bg:"#F0FDF4",text:"#14532D",dot:"#16A34A",icon:"📜"},
+    resigned:      {bg:"#FFF7ED",text:"#9A3412",dot:"#EA580C",icon:"🚪"},
+    estate:        {bg:"#F1F5F9",text:"#334155",dot:"#64748B",icon:"⚖️"},
+    ominsure:      {bg:"#FDF4FF",text:"#6B21A8",dot:"#9333EA",icon:"🔒"},
+    auto_task:     {bg:"#F8FAFC",text:"#334155",dot:"#94A3B8",icon:"🤖"},
+    adviceworx:    {bg:"#FFF0F9",text:"#831843",dot:"#DB2777",icon:"💼"},
   },
   status:{
     overdue:  {bg:"#FEE2E2",text:"#991B1B"},
@@ -71,11 +106,51 @@ const STAGES = [
 ];
 
 const CITA_CATS = [
-  {id:"urgent",label:"Urgent"},{id:"minutes",label:"Minutes"},
-  {id:"admin",label:"Admin"},{id:"instruction",label:"Instructions"},
-  {id:"pso_psi",label:"PSO & PSI"},{id:"switches",label:"Switches"},
-  {id:"wills",label:"Wills"},{id:"resigned",label:"Resigned"},
-  {id:"estate",label:"Estate (E/L)"},
+  // Priority
+  {id:"urgent",          label:"Urgent",                        group:"Priority"},
+  // Admin & Process
+  {id:"minutes",         label:"Minutes",                       group:"Admin"},
+  {id:"admin",           label:"Admin",                         group:"Admin"},
+  {id:"instruction",     label:"Instructions",                  group:"Admin"},
+  {id:"auto_task",       label:"Auto Task",                     group:"Admin"},
+  // Investment & Retirement
+  {id:"pso_psi",         label:"PSO & PSI",                     group:"Investment"},
+  {id:"switches",        label:"Switches",                      group:"Investment"},
+  {id:"implementation",  label:"Implementation",                group:"Investment"},
+  {id:"sec14",           label:"Sec 14 Transfer",               group:"Investment"},
+  {id:"tfsa",            label:"TFSA Transfer",                 group:"Investment"},
+  {id:"directive135",    label:"Directive 135 Transfer (LA)",   group:"Investment"},
+  {id:"income_review",   label:"Income Review",                 group:"Investment"},
+  {id:"structured_note", label:"Structured Note",               group:"Investment"},
+  // Reviews
+  {id:"review_a",        label:"Review — A",                    group:"Reviews"},
+  {id:"review_b",        label:"Review — B",                    group:"Reviews"},
+  {id:"review_c",        label:"Review — C",                    group:"Reviews"},
+  {id:"review_d",        label:"Review — D",                    group:"Reviews"},
+  {id:"review_st",       label:"Review — ST",                   group:"Reviews"},
+  // STI
+  {id:"sti_claims",      label:"STI — Claims",                  group:"STI"},
+  {id:"sti_renewal",     label:"STI — Renewal",                 group:"STI"},
+  {id:"sti_underwriting",label:"STI — Underwriting",            group:"STI"},
+  {id:"sti_unpaid",      label:"STI — Unpaid / Cancelled",      group:"STI"},
+  // Employee Benefits
+  {id:"eb_servicing",    label:"EB — Servicing",                group:"EB"},
+  {id:"eb_new_lead",     label:"EB — New Lead",                 group:"EB"},
+  {id:"eb_underwriting", label:"EB — Underwriting",             group:"EB"},
+  {id:"eb_claims",       label:"EB — Claims",                   group:"EB"},
+  {id:"eb_referral",     label:"EB — Referral Feedback",        group:"EB"},
+  {id:"eb_withdrawal",   label:"EB — Withdrawal Request",       group:"EB"},
+  {id:"eb_sec14",        label:"EB — Sec 14 Transfer",          group:"EB"},
+  {id:"eb_rf_lead",      label:"EB — New Corp Retirement Lead", group:"EB"},
+  {id:"eb_rf_review",    label:"EB — Annual Retirement Review", group:"EB"},
+  // Healthcare
+  {id:"healthcare",      label:"Healthcare Review",             group:"Healthcare"},
+  // Other
+  {id:"wills",           label:"Wills",                         group:"Other"},
+  {id:"estate",          label:"Estate (E/L)",                  group:"Other"},
+  {id:"resigned",        label:"Resigned",                      group:"Other"},
+  {id:"ominsure",        label:"Ominsure",                      group:"Other"},
+  {id:"adviceworx",      label:"Adviceworx",                    group:"Other"},
 ];
 
 const CHECKLISTS = {
@@ -781,7 +856,15 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
                 <input value={form.advisor} onChange={e=>setForm(p=>({...p,advisor:e.target.value}))} style={iS} placeholder="e.g. RM"/>
               )}
             </Field>
-            <Field label="CATEGORY"><select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={selS}>{CITA_CATS.map(c=><option key={c.id} value={c.id}>{C.cats[c.id].icon} {c.label}</option>)}</select></Field>
+            <Field label="CATEGORY">
+              <select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={selS}>
+                {["Priority","Admin","Investment","Reviews","STI","EB","Healthcare","Other"].map(grp=>{
+                  const grpCats=CITA_CATS.filter(c=>c.group===grp);
+                  if(!grpCats.length) return null;
+                  return <optgroup key={grp} label={`── ${grp} ──`}>{grpCats.map(c=><option key={c.id} value={c.id}>{C.cats[c.id].icon} {c.label}</option>)}</optgroup>;
+                })}
+              </select>
+            </Field>
           </div>
           <Field label="INSTRUCTION / ACTION"><textarea value={form.instruction} onChange={e=>setForm(p=>({...p,instruction:e.target.value}))} style={{...iS,height:80,resize:"vertical"}} placeholder="Describe the task..."/></Field>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
@@ -816,15 +899,58 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
         ):(
           <select value={filterAdv} onChange={e=>setFilterAdv(e.target.value)} style={{...selS,width:100,background:C.surface}}><option value="all">All</option></select>
         )}
-        <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...selS,width:160,background:C.surface}}><option value="all">All Categories</option>{CITA_CATS.map(c=><option key={c.id} value={c.id}>{C.cats[c.id].icon} {c.label}</option>)}</select>
+        <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{...selS,width:200,background:C.surface}}>
+          <option value="all">All Categories</option>
+          {["Priority","Admin","Investment","Reviews","STI","EB","Healthcare","Other"].map(grp=>{
+            const grpCats=CITA_CATS.filter(c=>c.group===grp);
+            if(!grpCats.length) return null;
+            return <optgroup key={grp} label={`── ${grp} ──`}>{grpCats.map(c=><option key={c.id} value={c.id}>{C.cats[c.id].icon} {c.label}</option>)}</optgroup>;
+          })}
+        </select>
         <div style={{flex:1}}/>
         <button onClick={()=>{setForm(empty);setShowAdd(true);}} style={{background:C.cita,color:"#fff",border:"none",borderRadius:9,padding:"9px 20px",cursor:"pointer",fontWeight:900,fontSize:13}}>+ New Task</button>
       </div>
 
-      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-        <button onClick={()=>setFilterCat("all")} style={{padding:"5px 14px",borderRadius:20,border:`1px solid ${filterCat==="all"?C.cita:C.border}`,background:filterCat==="all"?C.cita:C.surface,color:filterCat==="all"?"#fff":C.muted,fontSize:11,fontWeight:800,cursor:"pointer"}}>All</button>
-        {CITA_CATS.map(c=><button key={c.id} onClick={()=>setFilterCat(filterCat===c.id?"all":c.id)} style={{padding:"5px 14px",borderRadius:20,border:`1px solid ${filterCat===c.id?C.cats[c.id].dot:C.border}`,background:filterCat===c.id?C.cats[c.id].bg:C.surface,color:filterCat===c.id?C.cats[c.id].text:C.muted,fontSize:11,fontWeight:800,cursor:"pointer"}}>{C.cats[c.id].icon} {c.label} ({tasks.filter(t=>t.category===c.id).length})</button>)}
-      </div>
+      {/* Grouped category filters */}
+      {(()=>{
+        const groups=["Priority","Admin","Investment","Reviews","STI","EB","Healthcare","Other"];
+        const active=filterCat!=="all"?C.cats[filterCat]:null;
+        return(
+          <div style={{marginBottom:16}}>
+            {/* Active filter pill + clear */}
+            {active&&(
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <span style={{fontSize:11,color:C.muted,fontWeight:700}}>Filtering:</span>
+                <span style={{background:active.bg,color:active.text,fontSize:11,fontWeight:800,padding:"4px 12px",borderRadius:20,display:"flex",alignItems:"center",gap:5}}>
+                  {active.icon} {CITA_CATS.find(c=>c.id===filterCat)?.label}
+                </span>
+                <button onClick={()=>setFilterCat("all")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:12,fontWeight:700,padding:"2px 6px"}}>✕ Clear</button>
+              </div>
+            )}
+            {/* Group rows */}
+            {groups.map(grp=>{
+              const grpCats=CITA_CATS.filter(c=>c.group===grp);
+              if(!grpCats.length) return null;
+              return(
+                <div key={grp} style={{display:"flex",alignItems:"center",gap:6,marginBottom:7,flexWrap:"wrap"}}>
+                  <span style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:C.muted,minWidth:76,textTransform:"uppercase"}}>{grp}</span>
+                  {grpCats.map(c=>{
+                    const cat=C.cats[c.id];
+                    const count=tasks.filter(t=>t.category===c.id).length;
+                    const active=filterCat===c.id;
+                    return(
+                      <button key={c.id} onClick={()=>setFilterCat(active?"all":c.id)}
+                        style={{padding:"4px 11px",borderRadius:20,border:`1px solid ${active?cat.dot:C.border}`,background:active?cat.bg:C.surface,color:active?cat.text:C.muted,fontSize:11,fontWeight:active?800:600,cursor:"pointer",display:"flex",alignItems:"center",gap:4,transition:"all 0.1s"}}>
+                        {cat.icon} {c.label} {count>0&&<span style={{background:active?cat.dot:"#E5E7EB",color:active?"#fff":"#6B7280",borderRadius:10,fontSize:9,padding:"0 5px",fontWeight:800}}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:C.muted,fontSize:14}}>No tasks match your filters.</div>}
