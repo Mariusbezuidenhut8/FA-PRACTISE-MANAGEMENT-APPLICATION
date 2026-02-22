@@ -1,3 +1,5 @@
+import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
+
 // src/firebase.js
 
 import { initializeApp } from "firebase/app";
