@@ -121,5 +121,7 @@ export function useDocuments() {
     await deleteDoc(doc(db, "documents", document.id));
   };
 
-  return { documents, loading, uploadDocument, deleteDocument };
+  const updateDocument = (id, data) => updateDoc(doc(db, "documents", id), data);
+
+  return { documents, loading, uploadDocument, deleteDocument, updateDocument };
 }
