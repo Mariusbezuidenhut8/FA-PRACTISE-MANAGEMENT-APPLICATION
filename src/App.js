@@ -1,6 +1,3 @@
-p · JS
-Copy
-
 // src/App.js — ADVISE Practice Manager with Team Management + Practice Library
 import { useState, useMemo, useRef } from "react";
 import { useCases, useTasks, useTeam, useDocuments } from "./useFirestore";
