@@ -457,7 +457,7 @@ function TeamModule({team, addMember, updateMember, deleteMember, cases, tasks})
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({cases,updateCase,tasks,team,setMod}){
+function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
   const [editCase,setEditCase]=useState(null);
   const [form,setForm]=useState({nextAction:"on_track",nextNote:"",dueDate:""});
 
@@ -626,6 +626,34 @@ function Dashboard({cases,updateCase,tasks,team,setMod}){
             <button onClick={()=>setMod("cita")} style={{width:"100%",background:C.faint,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 0",cursor:"pointer",fontWeight:700,fontSize:12,color:C.muted,marginTop:4}}>
               View all {tasks.filter(t=>getTaskStatus(t)==="overdue").length} overdue tasks →
             </button>
+          )}
+        </Card>
+
+        {/* Library widget */}
+        <Card style={{gridColumn:"span 2"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <SectionTitle>📁 Practice Library — Recent Documents</SectionTitle>
+            <button onClick={()=>setMod("library")} style={{background:"#0F766E",color:"#fff",border:"none",borderRadius:8,padding:"7px 16px",cursor:"pointer",fontWeight:800,fontSize:12}}>
+              Open Library →
+            </button>
+          </div>
+          {documents.length===0?(
+            <div style={{textAlign:"center",padding:"24px 0",color:C.muted,fontSize:13}}>
+              No documents uploaded yet — <span style={{color:"#0F766E",cursor:"pointer",fontWeight:700}} onClick={()=>setMod("library")}>go to Library to upload</span>
+            </div>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
+              {documents.slice(0,6).map(doc=>(
+                <div key={doc.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 13px",borderRadius:10,background:C.faint,border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:22,flexShrink:0}}>{fileIcon(doc.fileType)}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.fileName}</div>
+                    {doc.description&&<div style={{fontSize:10,color:C.muted,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.description}</div>}
+                  </div>
+                  <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer" style={{background:"#0F766E",color:"#fff",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:800,textDecoration:"none",flexShrink:0}}>Open</a>
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       </div>
@@ -1025,9 +1053,11 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
 }
 
 // ─── CLIENT VIEW ──────────────────────────────────────────────────────────────
-function ClientView({pipeline,tasks,team}){
+function ClientView({pipeline,tasks,team,setMod,updateCase}){
   const [search,setSearch]=useState("");
   const [sel,setSel]=useState(null);
+  const [editingNote,setEditingNote]=useState(false);
+  const [noteText,setNoteText]=useState("");
   const allClients=useMemo(()=>{
     const resolveName=(id,fallback)=>{const m=team.find(t=>t.id===id);return m?m.name:(fallback||"—");};
     const map={};
@@ -1091,17 +1121,60 @@ function ClientView({pipeline,tasks,team}){
                     </div>
                   </div>
                 )}
+                {/* CLIENT NOTES */}
+                {client.pipelineCase&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <SectionTitle>📝 CLIENT NOTES</SectionTitle>
+                      {!editingNote&&(
+                        <button onClick={()=>{setNoteText(client.pipelineCase.clientNotes||"");setEditingNote(true);}}
+                          style={{background:"none",border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 12px",cursor:"pointer",fontSize:11,fontWeight:700,color:C.muted}}>
+                          {client.pipelineCase.clientNotes?"✏️ Edit":"+ Add Note"}
+                        </button>
+                      )}
+                    </div>
+                    {editingNote?(
+                      <div>
+                        <textarea value={noteText} onChange={e=>setNoteText(e.target.value)}
+                          style={{...iS,height:100,resize:"vertical",width:"100%",fontFamily:"inherit",lineHeight:1.6}}
+                          placeholder="Meeting outcomes, call notes, important client details…"/>
+                        <div style={{display:"flex",gap:8,marginTop:8}}>
+                          <button onClick={async()=>{await updateCase(client.pipelineCase.id,{clientNotes:noteText});setEditingNote(false);}}
+                            style={{flex:1,background:C.pipeline,color:"#fff",border:"none",borderRadius:8,padding:"9px 0",cursor:"pointer",fontWeight:900,fontSize:13}}>
+                            💾 Save Note
+                          </button>
+                          <button onClick={()=>setEditingNote(false)}
+                            style={{background:C.faint,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 16px",cursor:"pointer",fontWeight:700,fontSize:13}}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ):client.pipelineCase.clientNotes?(
+                      <div style={{background:C.faint,borderRadius:10,padding:"12px 16px",fontSize:13,lineHeight:1.7,color:C.text,borderLeft:`3px solid ${C.pipeline}`,whiteSpace:"pre-wrap"}}>
+                        {client.pipelineCase.clientNotes}
+                      </div>
+                    ):(
+                      <div style={{color:C.muted,fontSize:12,fontStyle:"italic",padding:"8px 0"}}>No notes yet — click "+ Add Note" to log meeting outcomes and call notes.</div>
+                    )}
+                  </div>
+                )}
+
                 {open.length>0&&(
                   <div style={{marginBottom:14}}>
                     <SectionTitle>OPEN ADMIN TASKS ({open.length})</SectionTitle>
                     {open.map(t=>{const cat=C.cats[t.category];const st=getTaskStatus(t);return(
-                      <div key={t.id} style={{padding:"10px 13px",borderRadius:9,marginBottom:6,background:C.faint,border:`1px solid ${C.border}`,display:"flex",gap:10}}>
+                      <div key={t.id} style={{padding:"10px 13px",borderRadius:9,marginBottom:6,background:C.faint,border:`1px solid ${C.border}`,display:"flex",gap:10,cursor:"pointer"}}
+                        onClick={()=>setMod("cita")}
+                        onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.08)"}
+                        onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+                        title="Click to open Admin Tracker">
                         <span style={{fontSize:18}}>{cat.icon}</span>
                         <div style={{flex:1}}>
                           <div style={{fontSize:12,fontWeight:700}}>{t.instruction}</div>
                           <div style={{display:"flex",gap:7,marginTop:5,flexWrap:"wrap"}}>
                             <Badge color={{bg:cat.bg,text:cat.text}}>{CITA_CATS.find(c=>c.id===t.category)?.label}</Badge>
                             <Badge color={C.status[st]}>{st==="overdue"?"Overdue":st==="due_today"?"Due Today":"Open"}</Badge>
+                            <Badge color={{bg:"#F3F4F6",text:"#6B7280"}}>→ Admin Tracker</Badge>
                           </div>
                         </div>
                       </div>
@@ -1158,7 +1231,7 @@ function fileIcon(type){
   return"📄";
 }
 
-function LibraryModule({documents, loading, uploadDocument, deleteDocument, team,
+function LibraryModule({documents, loading, uploadDocument, deleteDocument, updateDocument, team,
   showUpload, setShowUpload, uploadState, setUploadState, uploadPct, setUploadPct,
   pendingFile, setPendingFile}){
   const [filterCat,setFilterCat]    = useState("all");
@@ -1168,6 +1241,8 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false,stages:[]});
   const fileInputRef                = useRef(null);
   const uploading                   = uploadState === "uploading";
+  const [editDoc,setEditDoc]        = useState(null);
+  const [editForm,setEditForm]      = useState({description:"",stages:[],category:"disclosure"});
 
   const setUploadStateSynced = (val) => setUploadState(val);
 
@@ -1297,6 +1372,46 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         </Modal>
       )}
 
+      {/* Edit document modal */}
+      {editDoc&&(
+        <Modal title={`Edit — ${editDoc.fileName}`} onClose={()=>setEditDoc(null)}>
+          <Field label="DESCRIPTION">
+            <input value={editForm.description} onChange={e=>setEditForm(p=>({...p,description:e.target.value}))} style={iS} placeholder="e.g. Marius Bezuidenhout — 2025 Disclosure Letter"/>
+          </Field>
+          <Field label="DOCUMENT CATEGORY">
+            <select value={editForm.category} onChange={e=>setEditForm(p=>({...p,category:e.target.value}))} style={selS}>
+              {DOC_CATS.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+            </select>
+          </Field>
+          <Field label="PIPELINE STAGES">
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{id:"lead",label:"Lead / Referral",icon:"🔵"},{id:"initial",label:"Initial Engagement",icon:"🟣"},{id:"goal",label:"Goal Setting",icon:"🩵"},{id:"development",label:"Development Strategies",icon:"🟢"},{id:"implementation",label:"Implementation",icon:"🟡"}].map(s=>{
+                const checked=editForm.stages.includes(s.id);
+                return(
+                  <div key={s.id} onClick={()=>setEditForm(p=>({...p,stages:checked?p.stages.filter(x=>x!==s.id):[...p.stages,s.id]}))}
+                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 12px",borderRadius:9,border:`1.5px solid ${checked?"#2563EB":C.border}`,background:checked?"#EFF6FF":C.surface,cursor:"pointer"}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#2563EB":"#D1D5DB"}`,background:checked?"#2563EB":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {checked&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+                    </div>
+                    <span style={{fontSize:12,fontWeight:checked?800:600,color:checked?"#1E40AF":C.text}}>{s.icon} {s.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Field>
+          <button onClick={async()=>{
+            if(updateDocument) await updateDocument(editDoc.id,{
+              description:editForm.description,
+              stages:editForm.stages,
+              category:editForm.category,
+            });
+            setEditDoc(null);
+          }} style={{width:"100%",background:"#0F766E",color:"#fff",border:"none",borderRadius:9,padding:"12px 0",fontWeight:900,cursor:"pointer",fontSize:14,marginTop:4}}>
+            💾 Save Changes
+          </button>
+        </Modal>
+      )}
+
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
         <div>
@@ -1389,6 +1504,8 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
                     <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer" style={{flex:1,background:"#0F766E",color:"#fff",border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",fontWeight:800,fontSize:12,textDecoration:"none",textAlign:"center",display:"block"}}>
                       👁️ Open / Download
                     </a>
+                    <button onClick={()=>{setEditDoc(doc);setEditForm({description:doc.description||"",stages:doc.stages||[],category:doc.category||"disclosure"});}}
+                      style={{background:"#EFF6FF",color:"#1E40AF",border:"none",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>✏️</button>
                     <button onClick={()=>handleDelete(doc)} style={{background:"#FEE2E2",color:"#991B1B",border:"none",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>🗑</button>
                   </div>
                 </div>
@@ -1407,7 +1524,7 @@ export default function App() {
   const { cases,     loading:cL, addCase,       updateCase                          } = useCases();
   const { tasks,     loading:tL, addTask,       updateTask,  deleteTask, markDone   } = useTasks();
   const { team,      loading:mL, addMember,     updateMember, deleteMember          } = useTeam();
-  const { documents, loading:dL, uploadDocument, deleteDocument                     } = useDocuments();
+  const { documents, loading:dL, uploadDocument, deleteDocument, updateDocument     } = useDocuments();
 
   // Upload modal state lives here so Firestore re-renders don't reset it
   const [showUpload,setShowUpload]   = useState(false);
@@ -1425,12 +1542,12 @@ export default function App() {
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
       <TopNav mod={mod} setMod={setMod}/>
-      {mod==="dashboard" && <Dashboard    cases={cases} updateCase={updateCase} tasks={tasks} team={team} setMod={setMod}/>}
+      {mod==="dashboard" && <Dashboard    cases={cases} updateCase={updateCase} tasks={tasks} team={team} setMod={setMod} documents={documents}/>}
       {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase} team={team} documents={documents}/>}
       {mod==="cita"      && <CitaModule   tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone} team={team}/>}
-      {mod==="client"    && <ClientView   pipeline={cases} tasks={tasks} team={team}/>}
+      {mod==="client"    && <ClientView   pipeline={cases} tasks={tasks} team={team} setMod={setMod} updateCase={updateCase}/>}
       {mod==="team"      && <TeamModule   team={team} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember} cases={cases} tasks={tasks}/>}
-      {mod==="library"   && <LibraryModule documents={documents} loading={dL} uploadDocument={uploadDocument} deleteDocument={deleteDocument} team={team}
+      {mod==="library"   && <LibraryModule documents={documents} loading={dL} uploadDocument={uploadDocument} deleteDocument={deleteDocument} updateDocument={updateDocument} team={team}
         showUpload={showUpload} setShowUpload={setShowUpload}
         uploadState={uploadState} setUploadState={setUploadState}
         uploadPct={uploadPct} setUploadPct={setUploadPct}
