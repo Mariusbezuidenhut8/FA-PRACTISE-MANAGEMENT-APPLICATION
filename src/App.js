@@ -1144,7 +1144,6 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   };
 
   const resetUpload = () => {
-    uploadStateRef.current = "idle";
     setUploadState("idle");
     setShowUpload(false);
     setPendingFile(null);
