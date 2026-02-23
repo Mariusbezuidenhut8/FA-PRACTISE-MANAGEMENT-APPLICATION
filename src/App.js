@@ -517,7 +517,7 @@ function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
           {label:"Due Today",        value:dueTodayAdmin,         color:"#7C3AED", sub:"admin tasks"},
           {label:"Waiting on Client",value:waiting.length,        color:"#0891B2", sub:"pipeline cases"},
           {label:"Team Members",     value:team.filter(m=>m.active!==false).length, color:C.team, sub:"active staff"},
-          {label:"Reviews Due",       value:cases.filter(c=>{if(!c.reviewDate)return false;const d=new Date(c.reviewDate);const now=new Date();const in30=new Date();in30.setDate(in30.getDate()+30);return d<=in30;}).length, color:"#0891B2", sub:"next 30 days"},
+          {label:"Reviews Due",       value:cases.filter(c=>{if(!c.reviewDate)return false;const d=new Date(c.reviewDate);const in30=new Date();in30.setDate(in30.getDate()+30);return d<=in30;}).length, color:"#0891B2", sub:"next 30 days"},
         ].map((k,i)=>(
           <div key={i} style={{background:C.surface,borderRadius:12,padding:"14px 16px",borderTop:`4px solid ${k.color}`,boxShadow:"0 1px 5px rgba(0,0,0,0.05)",cursor:i===5?"pointer":"default"}} onClick={i===5?()=>setMod("team"):undefined}>
             <div style={{fontSize:28,fontWeight:900,color:k.color,fontFamily:"Georgia,serif",lineHeight:1}}>{k.value}</div>
