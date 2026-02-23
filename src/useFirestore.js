@@ -80,25 +80,10 @@ export function useDocuments() {
 
   // Upload file to Storage + save metadata to Firestore
   const uploadDocument = (file, meta, onProgress) => {
-  return new Promise((resolve, reject) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      reject(new Error("NOT_AUTHENTICATED"));
-      return;
-    }
-
-    const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-
-    // ✅ MUST match your Storage rules:
-    // match /users/{uid}/library/{allPaths=**}
-    const storageRef = ref(
-      storage,
-      `users/${user.uid}/library/${meta.category}/${safeName}`
-    );
-
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    return new Promise((resolve, reject) => {
+      const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const storageRef = ref(storage, `documents/${meta.category}/${safeName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
         "state_changed",
