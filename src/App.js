@@ -1,22 +1,9 @@
+p · JS
+Copy
+
 // src/App.js — ADVISE Practice Manager with Team Management + Practice Library
 import { useState, useMemo, useRef } from "react";
 import { useCases, useTasks, useTeam, useDocuments } from "./useFirestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getAuth } from "firebase/auth";
-
-const storage = getStorage();
-const auth = getAuth();
-
-export async function uploadLibraryDoc(file) {
-  const user = auth.currentUser;
-  if (!user) throw new Error("Not signed in");
-
-  const fileRef = ref(storage, `users/${user.uid}/library/${file.name}`);
-  await uploadBytes(fileRef, file);
-
-  const url = await getDownloadURL(fileRef);
-  return url;
-}
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1170,10 +1157,13 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         description: form.description,
         uploadedBy:  "Team",
       },(pct)=>setUploadPct(pct));
-      setShowUpload(false);setPendingFile(null);
-      setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
-    }catch(e){alert("Upload failed. Please try again.");}
-    setUploading(false);
+      setTimeout(()=>{
+        setShowUpload(false);
+        setPendingFile(null);
+        setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+        setUploading(false);
+      }, 800);
+    }catch(e){alert("Upload failed. Please try again.");setUploading(false);}
   };
 
   const handleDelete = async(doc)=>{
