@@ -1119,25 +1119,18 @@ function fileIcon(type){
   return"📄";
 }
 
-function LibraryModule({documents, loading, uploadDocument, deleteDocument, team}){
+function LibraryModule({documents, loading, uploadDocument, deleteDocument, team,
+  showUpload, setShowUpload, uploadState, setUploadState, uploadPct, setUploadPct,
+  pendingFile, setPendingFile}){
   const [filterCat,setFilterCat]    = useState("all");
   const [filterAdv,setFilterAdv]    = useState("all");
   const [search,setSearch]          = useState("");
-  const [showUpload,setShowUpload]  = useState(false);
-  const [uploadState,setUploadState]= useState("idle"); // idle | uploading | done
-  const [uploadPct,setUploadPct]    = useState(0);
   const [dragOver,setDragOver]      = useState(false);
   const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
-  const [pendingFile,setPendingFile]= useState(null);
   const fileInputRef                = useRef(null);
-  const uploadStateRef              = useRef("idle");
   const uploading                   = uploadState === "uploading";
 
-  // Keep ref in sync with state so callbacks always see current value
-  const setUploadStateSynced = (val) => {
-    uploadStateRef.current = val;
-    setUploadState(val);
-  };
+  const setUploadStateSynced = (val) => setUploadState(val);
 
   const filtered = useMemo(()=>documents.filter(d=>{
     if(filterCat!=="all"&&d.category!==filterCat)return false;
@@ -1362,6 +1355,12 @@ export default function App() {
   const { team,      loading:mL, addMember,     updateMember, deleteMember          } = useTeam();
   const { documents, loading:dL, uploadDocument, deleteDocument                     } = useDocuments();
 
+  // Upload modal state lives here so Firestore re-renders don't reset it
+  const [showUpload,setShowUpload]   = useState(false);
+  const [uploadState,setUploadState] = useState("idle");
+  const [uploadPct,setUploadPct]     = useState(0);
+  const [pendingFile,setPendingFile] = useState(null);
+
   if (cL||tL||mL) return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype',Georgia,serif"}}>
       <TopNav mod={mod} setMod={setMod}/>
@@ -1377,7 +1376,11 @@ export default function App() {
       {mod==="cita"      && <CitaModule   tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone} team={team}/>}
       {mod==="client"    && <ClientView   pipeline={cases} tasks={tasks} team={team}/>}
       {mod==="team"      && <TeamModule   team={team} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember} cases={cases} tasks={tasks}/>}
-      {mod==="library"   && <LibraryModule documents={documents} loading={dL} uploadDocument={uploadDocument} deleteDocument={deleteDocument} team={team}/>}
+      {mod==="library"   && <LibraryModule documents={documents} loading={dL} uploadDocument={uploadDocument} deleteDocument={deleteDocument} team={team}
+        showUpload={showUpload} setShowUpload={setShowUpload}
+        uploadState={uploadState} setUploadState={setUploadState}
+        uploadPct={uploadPct} setUploadPct={setUploadPct}
+        pendingFile={pendingFile} setPendingFile={setPendingFile}/>}
     </div>
   );
 }
