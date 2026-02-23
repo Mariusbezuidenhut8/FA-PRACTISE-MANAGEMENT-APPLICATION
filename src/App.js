@@ -1124,12 +1124,13 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   const [filterAdv,setFilterAdv]    = useState("all");
   const [search,setSearch]          = useState("");
   const [showUpload,setShowUpload]  = useState(false);
-  const [uploading,setUploading]    = useState(false);
+  const [uploadState,setUploadState]= useState("idle"); // idle | uploading | done
   const [uploadPct,setUploadPct]    = useState(0);
   const [dragOver,setDragOver]      = useState(false);
   const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
   const [pendingFile,setPendingFile]= useState(null);
   const fileInputRef                = useRef(null);
+  const uploading                   = uploadState === "uploading";
 
   const filtered = useMemo(()=>documents.filter(d=>{
     if(filterCat!=="all"&&d.category!==filterCat)return false;
@@ -1142,9 +1143,18 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
     if(files&&files[0]){setPendingFile(files[0]);setShowUpload(true);}
   };
 
+  const resetUpload = () => {
+    setShowUpload(false);
+    setPendingFile(null);
+    setUploadState("idle");
+    setUploadPct(0);
+    setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+  };
+
   const doUpload = async () => {
     if(!pendingFile)return;
-    setUploading(true);setUploadPct(0);
+    setUploadState("uploading");
+    setUploadPct(0);
     try{
       const adv = team.find(t=>t.id===form.advisorId);
       await uploadDocument(pendingFile,{
@@ -1154,13 +1164,12 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         description: form.description,
         uploadedBy:  "Team",
       },(pct)=>setUploadPct(pct));
-      setTimeout(()=>{
-        setShowUpload(false);
-        setPendingFile(null);
-        setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
-        setUploading(false);
-      }, 800);
-    }catch(e){alert("Upload failed. Please try again.");setUploading(false);}
+      setUploadState("done");
+      setTimeout(resetUpload, 1200);
+    }catch(e){
+      alert("Upload failed. Please try again.");
+      setUploadState("idle");
+    }
   };
 
   const handleDelete = async(doc)=>{
@@ -1176,7 +1185,7 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   return(
     <div style={{padding:"28px 32px",maxWidth:1060,margin:"0 auto"}}>
       {showUpload&&(
-        <Modal title={`Upload Document${pendingFile?` — ${pendingFile.name}`:""}`} onClose={()=>{if(!uploading){setShowUpload(false);setPendingFile(null);}}}>
+        <Modal title={`Upload Document${pendingFile?` — ${pendingFile.name}`:""}`} onClose={()=>{ if(!uploading) resetUpload(); }}>
           {pendingFile&&(
             <div style={{display:"flex",alignItems:"center",gap:12,background:C.faint,borderRadius:10,padding:"12px 16px",marginBottom:20}}>
               <span style={{fontSize:28}}>{fileIcon(pendingFile.type)}</span>
@@ -1208,7 +1217,13 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
               </select>
             </Field>
           )}
-          {uploading?(
+          {uploadState==="done"?(
+            <div style={{marginTop:8,textAlign:"center",padding:"16px 0"}}>
+              <div style={{fontSize:32,marginBottom:8}}>✅</div>
+              <div style={{fontWeight:800,color:C.cita,fontSize:14}}>Upload complete!</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:4}}>Closing…</div>
+            </div>
+          ):uploading?(
             <div style={{marginTop:8}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:700,marginBottom:6}}>
                 <span style={{color:C.cita}}>Uploading…</span>
@@ -1357,3 +1372,4 @@ export default function App() {
     </div>
   );
 }
+
