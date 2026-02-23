@@ -634,7 +634,7 @@ function Dashboard({cases,updateCase,tasks,team,setMod}){
 }
 
 // ─── PIPELINE ─────────────────────────────────────────────────────────────────
-function PipelineModule({cases,addCase,updateCase,team}){
+function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
   const [view,setView]       = useState("list");
   const [sel,setSel]         = useState(null);
   const [role,setRole]       = useState("RM");
@@ -737,7 +737,46 @@ function PipelineModule({cases,addCase,updateCase,team}){
         </div>
         {tab==="checklist"&&<Card>{cl.map((item,i)=>{const done=isChk(liveCase.id,liveCase.stage,role,i);return(<div key={i} onClick={()=>toggle(liveCase.id,liveCase.stage,role,i)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"11px 14px",borderRadius:10,cursor:"pointer",marginBottom:6,background:done?"#F0FDF4":C.faint,border:`1px solid ${done?"#BBF7D0":C.border}`}}><div style={{width:20,height:20,borderRadius:6,border:`2px solid ${done?"#16A34A":"#D1D5DB"}`,background:done?"#16A34A":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{done&&<span style={{color:"#fff",fontSize:12}}>✓</span>}</div><span style={{fontSize:13.5,color:done?C.muted:C.text,textDecoration:done?"line-through":"none",lineHeight:1.5}}>{item}</span></div>);})}</Card>}
         {tab==="emails"&&<div style={{display:"grid",gridTemplateColumns:selEmail?"1fr 1.5fr":"1fr",gap:16}}><Card>{em.map((e,i)=><div key={i} onClick={()=>setSelEmail(e)} style={{padding:"12px 14px",borderRadius:10,cursor:"pointer",marginBottom:8,background:selEmail?.label===e.label?"#EFF6FF":C.faint,border:`1px solid ${selEmail?.label===e.label?"#BFDBFE":C.border}`}}><div style={{fontWeight:800,fontSize:13,color:C.pipeline}}>📧 {e.label}</div><div style={{fontSize:11,color:C.muted,marginTop:3}}>Subject: {e.subject}</div></div>)}</Card>{selEmail&&<Card><div style={{fontWeight:900,fontSize:15,fontFamily:"Georgia,serif",marginBottom:8}}>{selEmail.label}</div><div style={{background:C.faint,borderRadius:8,padding:"7px 12px",marginBottom:12,fontSize:12}}><span style={{color:C.muted}}>Subject: </span><span style={{fontWeight:700}}>{selEmail.subject}</span></div><div style={{fontSize:13,lineHeight:1.8,whiteSpace:"pre-line",color:"#374151",background:C.faint,borderRadius:10,padding:"14px 18px"}}>{selEmail.body}</div></Card>}</div>}
-        {tab==="documents"&&<Card><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{dc.map((d,i)=><div key={i} style={{padding:"12px 14px",borderRadius:10,background:C.faint,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📄</span><div style={{fontSize:13,fontWeight:700}}>{d}</div></div>)}</div></Card>}
+        {tab==="documents"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <Card>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:C.muted,marginBottom:12}}>STANDARD DOCUMENTS FOR THIS STAGE</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>
+                {dc.map((d,i)=>(
+                  <div key={i} style={{padding:"12px 14px",borderRadius:10,background:C.faint,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:20}}>📄</span>
+                    <div style={{fontSize:13,fontWeight:700}}>{d}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            {(()=>{
+              const stageDocs=documents.filter(d=>d.stages&&d.stages.includes(liveCase.stage));
+              if(stageDocs.length===0) return null;
+              return(
+                <Card>
+                  <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:C.muted,marginBottom:12}}>PRACTICE LIBRARY — {STAGES.find(s=>s.id===liveCase.stage)?.label.toUpperCase()}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {stageDocs.map(doc=>(
+                      <div key={doc.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:10,background:C.faint,border:`1px solid ${C.border}`}}>
+                        <span style={{fontSize:22}}>{fileIcon(doc.fileType)}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.fileName}</div>
+                          {doc.description&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{doc.description}</div>}
+                          {doc.advisorId!=="all"&&<div style={{fontSize:10,color:C.pipeline,fontWeight:700,marginTop:2}}>{doc.advisorName}</div>}
+                        </div>
+                        <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer"
+                          style={{background:"#0F766E",color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontWeight:800,fontSize:12,textDecoration:"none",whiteSpace:"nowrap"}}>
+                          👁️ Open
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })()}
+          </div>
+        )}
       </div>
     );
   }
@@ -1126,7 +1165,7 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   const [filterAdv,setFilterAdv]    = useState("all");
   const [search,setSearch]          = useState("");
   const [dragOver,setDragOver]      = useState(false);
-  const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+  const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false,stages:[]});
   const fileInputRef                = useRef(null);
   const uploading                   = uploadState === "uploading";
 
@@ -1148,7 +1187,7 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
     setShowUpload(false);
     setPendingFile(null);
     setUploadPct(0);
-    setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
+    setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false,stages:[]});
   };
 
   const doUpload = async () => {
@@ -1162,6 +1201,7 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         advisorId:   form.isAdvisorSpecific?form.advisorId:"all",
         advisorName: form.isAdvisorSpecific&&adv?adv.name:"All Advisors",
         description: form.description,
+        stages:      form.stages,
         uploadedBy:  "Team",
       },(pct)=>setUploadPct(pct));
       setUploadStateSynced("done");
@@ -1217,6 +1257,22 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
               </select>
             </Field>
           )}
+          <Field label="PIPELINE STAGES (optional — select where this doc should appear)">
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{id:"lead",label:"Lead / Referral",icon:"🔵"},{id:"initial",label:"Initial Engagement",icon:"🟣"},{id:"goal",label:"Goal Setting",icon:"🩵"},{id:"development",label:"Development Strategies",icon:"🟢"},{id:"implementation",label:"Implementation",icon:"🟡"}].map(s=>{
+                const checked=form.stages.includes(s.id);
+                return(
+                  <div key={s.id} onClick={()=>setForm(p=>({...p,stages:checked?p.stages.filter(x=>x!==s.id):[...p.stages,s.id]}))}
+                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 12px",borderRadius:9,border:`1.5px solid ${checked?"#2563EB":C.border}`,background:checked?"#EFF6FF":C.surface,cursor:"pointer"}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#2563EB":"#D1D5DB"}`,background:checked?"#2563EB":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {checked&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+                    </div>
+                    <span style={{fontSize:12,fontWeight:checked?800:600,color:checked?"#1E40AF":C.text}}>{s.icon} {s.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Field>
           {uploadState==="done"?(
             <div style={{marginTop:8,textAlign:"center",padding:"16px 0"}}>
               <div style={{fontSize:32,marginBottom:8}}>✅</div>
@@ -1370,7 +1426,7 @@ export default function App() {
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif",color:C.text}}>
       <TopNav mod={mod} setMod={setMod}/>
       {mod==="dashboard" && <Dashboard    cases={cases} updateCase={updateCase} tasks={tasks} team={team} setMod={setMod}/>}
-      {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase} team={team}/>}
+      {mod==="pipeline"  && <PipelineModule cases={cases} addCase={addCase} updateCase={updateCase} team={team} documents={documents}/>}
       {mod==="cita"      && <CitaModule   tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} markDone={markDone} team={team}/>}
       {mod==="client"    && <ClientView   pipeline={cases} tasks={tasks} team={team}/>}
       {mod==="team"      && <TeamModule   team={team} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember} cases={cases} tasks={tasks}/>}
@@ -1382,4 +1438,3 @@ export default function App() {
     </div>
   );
 }
-
