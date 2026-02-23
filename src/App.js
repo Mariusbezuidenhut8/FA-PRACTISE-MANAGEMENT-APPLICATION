@@ -1153,12 +1153,10 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
 
   const doUpload = async () => {
     if(!pendingFile)return;
-    console.log("[doUpload] Starting upload, file:", pendingFile.name);
     setUploadStateSynced("uploading");
     setUploadPct(0);
     try{
       const adv = team.find(t=>t.id===form.advisorId);
-      console.log("[doUpload] Calling uploadDocument...");
       await uploadDocument(pendingFile,{
         category:    form.category,
         advisorId:   form.isAdvisorSpecific?form.advisorId:"all",
@@ -1166,16 +1164,10 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         description: form.description,
         uploadedBy:  "Team",
       },(pct)=>setUploadPct(pct));
-      console.log("[doUpload] uploadDocument resolved! Setting state to done...");
       setUploadStateSynced("done");
-      console.log("[doUpload] State set to done, starting 1500ms timer...");
-      setTimeout(() => {
-        console.log("[doUpload] Timer fired - calling resetUpload()");
-        resetUpload();
-      }, 1500);
+      setTimeout(() => resetUpload(), 1500);
     }catch(e){
-      console.error("[doUpload] CAUGHT ERROR:", e);
-      alert("Upload failed. Please try again.");
+      alert("Upload failed: " + e.message);
       setUploadStateSynced("idle");
     }
   };
