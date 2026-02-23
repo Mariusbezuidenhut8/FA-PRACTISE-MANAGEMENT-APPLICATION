@@ -1130,7 +1130,14 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   const [form,setForm]              = useState({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
   const [pendingFile,setPendingFile]= useState(null);
   const fileInputRef                = useRef(null);
+  const uploadStateRef              = useRef("idle");
   const uploading                   = uploadState === "uploading";
+
+  // Keep ref in sync with state so callbacks always see current value
+  const setUploadStateSynced = (val) => {
+    uploadStateRef.current = val;
+    setUploadState(val);
+  };
 
   const filtered = useMemo(()=>documents.filter(d=>{
     if(filterCat!=="all"&&d.category!==filterCat)return false;
@@ -1144,16 +1151,17 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
   };
 
   const resetUpload = () => {
+    uploadStateRef.current = "idle";
+    setUploadState("idle");
     setShowUpload(false);
     setPendingFile(null);
-    setUploadState("idle");
     setUploadPct(0);
     setForm({category:"disclosure",advisorId:"all",description:"",isAdvisorSpecific:false});
   };
 
   const doUpload = async () => {
     if(!pendingFile)return;
-    setUploadState("uploading");
+    setUploadStateSynced("uploading");
     setUploadPct(0);
     try{
       const adv = team.find(t=>t.id===form.advisorId);
@@ -1164,11 +1172,12 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
         description: form.description,
         uploadedBy:  "Team",
       },(pct)=>setUploadPct(pct));
-      setUploadState("done");
-      setTimeout(resetUpload, 1200);
+      // Upload fully complete - show success then close
+      setUploadStateSynced("done");
+      setTimeout(() => resetUpload(), 1500);
     }catch(e){
       alert("Upload failed. Please try again.");
-      setUploadState("idle");
+      setUploadStateSynced("idle");
     }
   };
 
@@ -1184,7 +1193,7 @@ function LibraryModule({documents, loading, uploadDocument, deleteDocument, team
 
   return(
     <div style={{padding:"28px 32px",maxWidth:1060,margin:"0 auto"}}>
-      {showUpload&&(
+      {(showUpload || uploadState !== "idle")&&(
         <Modal title={`Upload Document${pendingFile?` — ${pendingFile.name}`:""}`} onClose={()=>{ if(!uploading) resetUpload(); }}>
           {pendingFile&&(
             <div style={{display:"flex",alignItems:"center",gap:12,background:C.faint,borderRadius:10,padding:"12px 16px",marginBottom:20}}>
