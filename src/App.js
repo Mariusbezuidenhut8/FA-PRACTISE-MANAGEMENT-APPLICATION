@@ -981,6 +981,12 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
   const [search,setSearch]       =useState("");
   const [showAdd,setShowAdd]     =useState(false);
   const [editT,setEditT]         =useState(null);
+  const [selTask,setSelTask]      =useState(null); // task detail view
+  const [activityInput,setActivityInput]=useState("");
+  const [waitingOn,setWaitingOn] =useState({active:false,person:"",what:""});
+  const [editWaiting,setEditWaiting]=useState(false);
+  const [taskNotes,setTaskNotes] =useState("");
+  const [editingNotes,setEditingNotes]=useState(false);
   const empty={client:"",advisorId:"",advisor:"",category:"urgent",instruction:"",dateLogged:fmt(today),followUp:"",dateCompleted:"",notes:""};
   const [form,setForm]=useState(empty);
 
@@ -1003,6 +1009,180 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
   };
   const openEdit=(t)=>{setForm({...t,dateCompleted:t.dateCompleted||"",followUp:t.followUp||"",advisorId:t.advisorId||""});setEditT(t);setShowAdd(true);};
   const memberName=(t)=>{const m=team.find(tm=>tm.id===t.advisorId);return m?(m.initials||m.name):(t.advisor||"—");};
+
+  const openTask=(t)=>{
+    setSelTask(t);
+    setTaskNotes(t.notes||"");
+    setWaitingOn(t.waitingOn||{active:false,person:"",what:""});
+    setEditWaiting(false);
+    setEditingNotes(false);
+    setActivityInput("");
+  };
+
+  const addActivity=async(t,text)=>{
+    if(!text.trim())return;
+    const entry={text:text.trim(),at:new Date().toISOString(),by:"Team"};
+    const log=[...(t.activityLog||[]),entry];
+    await updateTask(t.id,{activityLog:log});
+    setActivityInput("");
+  };
+
+  const saveWaiting=async(t)=>{
+    await updateTask(t.id,{waitingOn});
+    setEditWaiting(false);
+  };
+
+  const saveNotes=async(t)=>{
+    await updateTask(t.id,{notes:taskNotes});
+    setEditingNotes(false);
+  };
+
+  // ── Task detail view ──────────────────────────────────────────────────────
+  if(selTask){
+    const liveTask=tasks.find(t=>t.id===selTask.id)||selTask;
+    const st=getTaskStatus(liveTask);
+    const sc=C.status[st];
+    const cat=C.cats[liveTask.category];
+    const log=[...(liveTask.activityLog||[])].reverse();
+    const isWaiting=liveTask.waitingOn?.active;
+    return(
+      <div style={{padding:"24px 32px",maxWidth:960,margin:"0 auto"}}>
+        {/* Back button */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22}}>
+          <button onClick={()=>setSelTask(null)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13,fontWeight:700}}>← Admin Tracker</button>
+          <span style={{color:C.muted}}>/</span>
+          <span style={{fontWeight:900,fontFamily:"Georgia,serif"}}>{liveTask.client}</span>
+          <Badge color={sc} style={{marginLeft:4}}>{st==="overdue"?"⚠️ Overdue":st==="due_today"?"⏰ Due Today":st==="completed"?"✅ Completed":"📌 Open"}</Badge>
+        </div>
+
+        {/* Header card */}
+        <Card style={{marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:28}}>{cat.icon}</span>
+                <div>
+                  <div style={{fontSize:20,fontWeight:900,fontFamily:"Georgia,serif"}}>{liveTask.client}</div>
+                  <div style={{fontSize:12,color:C.muted,marginTop:2}}>{CITA_CATS.find(c=>c.id===liveTask.category)?.label} · Assigned to {memberName(liveTask)}</div>
+                </div>
+              </div>
+              <div style={{background:C.faint,borderRadius:10,padding:"12px 16px",borderLeft:`3px solid ${cat.dot}`,fontSize:13,lineHeight:1.6}}>
+                {liveTask.instruction}
+              </div>
+              <div style={{display:"flex",gap:16,marginTop:10,fontSize:11,color:C.muted,flexWrap:"wrap"}}>
+                <span>📅 Logged: {liveTask.dateLogged}</span>
+                {liveTask.followUp&&<span style={{color:st==="overdue"?"#DC2626":st==="due_today"?"#D97706":C.muted}}>🔔 Follow-up: {liveTask.followUp}</span>}
+                {liveTask.dateCompleted&&<span style={{color:"#16A34A"}}>✅ Completed: {liveTask.dateCompleted}</span>}
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,minWidth:140}}>
+              {st!=="completed"&&(
+                <button onClick={async()=>{await markDone(liveTask.id);setSelTask(null);}} style={{background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:9,padding:"10px 0",cursor:"pointer",fontWeight:900,fontSize:13,width:"100%"}}>✓ Mark Complete</button>
+              )}
+              <button onClick={()=>{openEdit(liveTask);setSelTask(null);}} style={{background:C.faint,border:`1px solid ${C.border}`,borderRadius:9,padding:"10px 0",cursor:"pointer",fontWeight:700,fontSize:13,width:"100%"}}>✏️ Edit Task</button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Waiting on banner */}
+        <Card style={{marginBottom:16,borderLeft:`4px solid ${isWaiting?"#D97706":C.border}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:isWaiting||editWaiting?12:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>⏳</span>
+              <span style={{fontWeight:900,fontSize:14}}>Waiting on Someone</span>
+              {isWaiting&&!editWaiting&&(
+                <span style={{background:"#FEF3C7",color:"#92400E",fontSize:11,fontWeight:800,padding:"3px 10px",borderRadius:10}}>
+                  {liveTask.waitingOn.person} — {liveTask.waitingOn.what}
+                </span>
+              )}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              {isWaiting&&!editWaiting&&(
+                <button onClick={async()=>{const w={active:false,person:"",what:""};setWaitingOn(w);await updateTask(liveTask.id,{waitingOn:w});}} style={{background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:800}}>✓ Resolved</button>
+              )}
+              <button onClick={()=>{setWaitingOn(liveTask.waitingOn||{active:false,person:"",what:""});setEditWaiting(!editWaiting);}} style={{background:C.faint,border:`1px solid ${C.border}`,borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                {editWaiting?"Cancel":isWaiting?"Edit":"+ Set Waiting"}
+              </button>
+            </div>
+          </div>
+          {editWaiting&&(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <div onClick={()=>setWaitingOn(p=>({...p,active:!p.active}))} style={{width:44,height:24,borderRadius:12,background:waitingOn.active?"#D97706":"#D1D5DB",cursor:"pointer",position:"relative",flexShrink:0}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:waitingOn.active?23:3,transition:"left 0.2s"}}/>
+                </div>
+                <span style={{fontSize:13,fontWeight:700,color:waitingOn.active?"#92400E":C.muted}}>Currently waiting</span>
+              </div>
+              {waitingOn.active&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:10}}>
+                  <input value={waitingOn.person} onChange={e=>setWaitingOn(p=>({...p,person:e.target.value}))} placeholder="Waiting on who? (e.g. Client, Sanlam)" style={iS}/>
+                  <input value={waitingOn.what} onChange={e=>setWaitingOn(p=>({...p,what:e.target.value}))} placeholder="What are you waiting for?" style={iS}/>
+                </div>
+              )}
+              <button onClick={()=>saveWaiting(liveTask)} style={{background:"#D97706",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontWeight:900,fontSize:13,alignSelf:"flex-start"}}>Save</button>
+            </div>
+          )}
+        </Card>
+
+        {/* Notes */}
+        <Card style={{marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontWeight:900,fontSize:14}}>📝 Notes</span>
+            {!editingNotes?(
+              <button onClick={()=>{setTaskNotes(liveTask.notes||"");setEditingNotes(true);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 12px",cursor:"pointer",fontSize:11,fontWeight:700,color:C.muted}}>
+                {liveTask.notes?"✏️ Edit":"+ Add Notes"}
+              </button>
+            ):(
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>saveNotes(liveTask)} style={{background:C.cita,color:"#fff",border:"none",borderRadius:7,padding:"5px 14px",cursor:"pointer",fontSize:12,fontWeight:900}}>Save</button>
+                <button onClick={()=>setEditingNotes(false)} style={{background:C.faint,border:`1px solid ${C.border}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",fontSize:12}}>Cancel</button>
+              </div>
+            )}
+          </div>
+          {editingNotes?(
+            <textarea value={taskNotes} onChange={e=>setTaskNotes(e.target.value)} style={{...iS,height:120,resize:"vertical",lineHeight:1.7}} placeholder="Add detailed notes, context, history…"/>
+          ):liveTask.notes?(
+            <div style={{background:C.faint,borderRadius:10,padding:"12px 16px",fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{liveTask.notes}</div>
+          ):(
+            <div style={{color:C.muted,fontSize:12,fontStyle:"italic"}}>No notes yet.</div>
+          )}
+        </Card>
+
+        {/* Activity log */}
+        <Card>
+          <div style={{fontWeight:900,fontSize:14,marginBottom:14}}>💬 Activity Log</div>
+          <div style={{display:"flex",gap:10,marginBottom:18}}>
+            <input value={activityInput} onChange={e=>setActivityInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&addActivity(liveTask,activityInput)}
+              placeholder="Add an update, follow-up action, or status note…"
+              style={{...iS,flex:1}}/>
+            <button onClick={()=>addActivity(liveTask,activityInput)} style={{background:C.cita,color:"#fff",border:"none",borderRadius:9,padding:"9px 20px",cursor:"pointer",fontWeight:900,fontSize:13,flexShrink:0}}>Add</button>
+          </div>
+          {log.length===0&&(
+            <div style={{textAlign:"center",padding:"24px 0",color:C.muted,fontSize:13}}>No activity yet — add your first update above.</div>
+          )}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {log.map((entry,i)=>{
+              const d=new Date(entry.at);
+              const dateStr=d.toLocaleDateString("en-ZA",{day:"2-digit",month:"short",year:"numeric"});
+              const timeStr=d.toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});
+              return(
+                <div key={i} style={{display:"flex",gap:12,padding:"11px 14px",borderRadius:10,background:C.faint,border:`1px solid ${C.border}`}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:C.cita,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:13,flexShrink:0}}>
+                    {entry.by?entry.by[0]:"T"}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,lineHeight:1.6}}>{entry.text}</div>
+                    <div style={{fontSize:10,color:C.muted,marginTop:4}}>{entry.by||"Team"} · {dateStr} at {timeStr}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return(
     <div style={{padding:"28px 32px",maxWidth:1060,margin:"0 auto"}}>
@@ -1118,8 +1298,11 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
 
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.length===0&&<div style={{textAlign:"center",padding:"48px 0",color:C.muted,fontSize:14}}>No tasks match your filters.</div>}
-        {filtered.map(t=>{const st=getTaskStatus(t);const sc=C.status[st];const cat=C.cats[t.category];return(
-          <div key={t.id} style={{background:C.surface,borderRadius:12,padding:"13px 17px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",display:"flex",alignItems:"flex-start",gap:13,borderLeft:`4px solid ${cat.dot}`,opacity:st==="completed"?0.65:1}}>
+        {filtered.map(t=>{const st=getTaskStatus(t);const sc=C.status[st];const cat=C.cats[t.category];const hasActivity=(t.activityLog||[]).length>0;const isWaiting=t.waitingOn?.active;return(
+          <div key={t.id} style={{background:C.surface,borderRadius:12,padding:"13px 17px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",display:"flex",alignItems:"flex-start",gap:13,borderLeft:`4px solid ${cat.dot}`,opacity:st==="completed"?0.65:1,cursor:"pointer"}}
+            onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.1)"}
+            onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.05)"}
+            onClick={()=>openTask(t)}>
             <div style={{fontSize:20,marginTop:2}}>{cat.icon}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap",marginBottom:4}}>
@@ -1127,19 +1310,21 @@ function CitaModule({tasks,addTask,updateTask,deleteTask,markDone,team}){
                 <Badge color={{bg:"#F3F4F6",text:"#374151"}}>{memberName(t)}</Badge>
                 <Badge color={cat}>{cat.icon} {CITA_CATS.find(c=>c.id===t.category)?.label}</Badge>
                 <Badge color={sc}>{st==="overdue"?"Overdue":st==="due_today"?"Due Today":st==="completed"?"Completed":"Open"}</Badge>
+                {isWaiting&&<Badge color={{bg:"#FEF3C7",text:"#92400E"}}>⏳ Waiting: {t.waitingOn.person}</Badge>}
+                {hasActivity&&<Badge color={{bg:"#EFF6FF",text:"#1E40AF"}}>💬 {(t.activityLog||[]).length}</Badge>}
               </div>
               <div style={{fontSize:13,color:st==="completed"?C.muted:C.text,textDecoration:st==="completed"?"line-through":"none",marginBottom:4,lineHeight:1.5}}>{t.instruction}</div>
-              {t.notes&&<div style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>📝 {t.notes}</div>}
+              {t.notes&&<div style={{fontSize:11,color:C.muted,fontStyle:"italic",marginBottom:3}}>📝 {t.notes}</div>}
               <div style={{display:"flex",gap:16,marginTop:5,fontSize:11,color:C.muted}}>
                 <span>Logged: {t.dateLogged}</span>
                 {t.followUp&&<span style={{color:st==="overdue"?"#DC2626":st==="due_today"?"#D97706":C.muted}}>Follow-up: {t.followUp}</span>}
                 {t.dateCompleted&&<span style={{color:"#16A34A"}}>✓ Completed: {t.dateCompleted}</span>}
               </div>
             </div>
-            <div style={{display:"flex",gap:5,flexShrink:0}}>
-              {st!=="completed"&&<button onClick={()=>markDone(t.id)} style={{background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:900}}>✓</button>}
-              <button onClick={()=>openEdit(t)} style={{background:C.faint,color:C.text,border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:12}}>✏️</button>
-              <button onClick={()=>deleteTask(t.id)} style={{background:"#FEE2E2",color:"#991B1B",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13}}>🗑</button>
+            <div style={{display:"flex",gap:5,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+              {st!=="completed"&&<button onClick={()=>markDone(t.id)} style={{background:"#D1FAE5",color:"#065F46",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:900}} title="Mark Complete">✓</button>}
+              <button onClick={()=>openEdit(t)} style={{background:C.faint,color:C.text,border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:12}} title="Edit">✏️</button>
+              <button onClick={()=>deleteTask(t.id)} style={{background:"#FEE2E2",color:"#991B1B",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13}} title="Delete">🗑</button>
             </div>
           </div>
         );})}
