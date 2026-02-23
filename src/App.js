@@ -457,6 +457,19 @@ function TeamModule({team, addMember, updateMember, deleteMember, cases, tasks})
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
+// Days a case has been in its current stage
+function stageAgeDays(c){
+  const entered = c.stageEnteredAt ? new Date(c.stageEnteredAt) : (c.createdAt?.toDate ? c.createdAt.toDate() : new Date());
+  return Math.floor((new Date() - entered) / 86400000);
+}
+function ageColor(days, stage){
+  const limits = {lead:14, initial:21, goal:21, development:30, implementation:21};
+  const warn = limits[stage] || 21;
+  if(days >= warn) return {bg:"#FEE2E2", text:"#991B1B", dot:"#DC2626"};
+  if(days >= warn * 0.6) return {bg:"#FEF3C7", text:"#92400E", dot:"#D97706"};
+  return {bg:"#D1FAE5", text:"#065F46", dot:"#059669"};
+}
+
 function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
   const [editCase,setEditCase]=useState(null);
   const [form,setForm]=useState({nextAction:"on_track",nextNote:"",dueDate:""});
@@ -468,7 +481,7 @@ function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
   const todos         = cases.filter(c=>c.nextAction&&c.nextAction.startsWith("action_"));
   const byStage       = STAGES.map(s=>({...s,cases:cases.filter(c=>c.stage===s.id)}));
 
-  const openEdit=(c)=>{setEditCase(c);setForm({nextAction:c.nextAction||"on_track",nextNote:c.nextNote||"",dueDate:c.dueDate||""});};
+  const openEdit=(c)=>{setEditCase(c);setForm({nextAction:c.nextAction||"on_track",nextNote:c.nextNote||"",dueDate:c.dueDate||"",reviewDate:c.reviewDate||""});};
   const saveEdit=async()=>{await updateCase(editCase.id,form);setEditCase(null);};
 
   // Resolve advisor name from team
@@ -496,7 +509,7 @@ function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
         </Modal>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:12,marginBottom:28}}>
         {[
           {label:"Active Cases",     value:cases.length,          color:"#1A1A2E", sub:"in pipeline"},
           {label:"Overdue Actions",  value:actionAlerts.length,   color:"#DC2626", sub:"need attention"},
@@ -504,6 +517,7 @@ function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
           {label:"Due Today",        value:dueTodayAdmin,         color:"#7C3AED", sub:"admin tasks"},
           {label:"Waiting on Client",value:waiting.length,        color:"#0891B2", sub:"pipeline cases"},
           {label:"Team Members",     value:team.filter(m=>m.active!==false).length, color:C.team, sub:"active staff"},
+          {label:"Reviews Due",       value:cases.filter(c=>{if(!c.reviewDate)return false;const d=new Date(c.reviewDate);const now=new Date();const in30=new Date();in30.setDate(in30.getDate()+30);return d<=in30;}).length, color:"#0891B2", sub:"next 30 days"},
         ].map((k,i)=>(
           <div key={i} style={{background:C.surface,borderRadius:12,padding:"14px 16px",borderTop:`4px solid ${k.color}`,boxShadow:"0 1px 5px rgba(0,0,0,0.05)",cursor:i===5?"pointer":"default"}} onClick={i===5?()=>setMod("team"):undefined}>
             <div style={{fontSize:28,fontWeight:900,color:k.color,fontFamily:"Georgia,serif",lineHeight:1}}>{k.value}</div>
@@ -629,6 +643,46 @@ function Dashboard({cases,updateCase,tasks,team,setMod,documents=[]}){
           )}
         </Card>
 
+        {/* Annual Reviews Due */}
+        {(()=>{
+          const today=new Date(); const in60=new Date(); in60.setDate(today.getDate()+60);
+          const reviewsDue=cases
+            .filter(c=>c.reviewDate)
+            .map(c=>({...c,_reviewDate:new Date(c.reviewDate)}))
+            .filter(c=>c._reviewDate<=in60)
+            .sort((a,b)=>a._reviewDate-b._reviewDate);
+          if(reviewsDue.length===0) return null;
+          return(
+            <Card style={{gridColumn:"span 2"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <SectionTitle>📅 Annual Reviews Due — Next 60 Days</SectionTitle>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {reviewsDue.map(c=>{
+                  const overdue=c._reviewDate<today;
+                  const daysUntil=Math.ceil((c._reviewDate-today)/86400000);
+                  const sc=C.stages[c.stage];
+                  return(
+                    <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:overdue?"#FFF5F5":daysUntil<=14?"#FFFBEB":C.faint,border:`1px solid ${overdue?"#FCA5A5":daysUntil<=14?"#FDE68A":C.border}`}}>
+                      <span style={{fontSize:22}}>📅</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:800,fontSize:13}}>{c.name}</div>
+                        <div style={{fontSize:11,color:C.muted,marginTop:2}}>Advisor: {advisorName(c)}</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <Badge color={sc}>{STAGES.find(s=>s.id===c.stage)?.label}</Badge>
+                        <div style={{fontSize:11,fontWeight:800,marginTop:4,color:overdue?"#DC2626":daysUntil<=14?"#D97706":"#059669"}}>
+                          {overdue?`${Math.abs(daysUntil)}d overdue`:daysUntil===0?"Due today":`Due in ${daysUntil}d`} — {c.reviewDate}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })()}
+
         {/* Library widget */}
         <Card style={{gridColumn:"span 2"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -673,8 +727,10 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
   const [newName,setNewName] = useState("");
   const [newAdv,setNewAdv]   = useState("");
   const [editNext,setEditNext]= useState(false);
-  const [nextForm,setNextForm]= useState({nextAction:"on_track",nextNote:"",dueDate:""});
+  const [nextForm,setNextForm]= useState({nextAction:"on_track",nextNote:"",dueDate:"",reviewDate:""});
   const [filterAdv,setFilterAdv]= useState("all");
+  const [newRefType,setNewRefType]= useState("");
+  const [newRefName,setNewRefName]= useState("");
 
   const toggle   = (cId,stg,r,i)=>{const k=`${cId}-${stg}-${r}-${i}`;setChecks(p=>({...p,[k]:!p[k]}));};
   const isChk    = (cId,stg,r,i)=>!!checks[`${cId}-${stg}-${r}-${i}`];
@@ -694,8 +750,11 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
       nextAction:"action_book_meeting",
       nextNote:"Book initial engagement appointment",
       dueDate:fwd(2),
+      referralType: newRefType||"",
+      referralName: newRefName.trim()||"",
+      stageEnteredAt: new Date().toISOString().split("T")[0],
     });
-    setNewName(""); setShowAdd(false);
+    setNewName(""); setNewRefType(""); setNewRefName(""); setShowAdd(false);
   };
 
   const visibleCases = filterAdv==="all" ? cases : cases.filter(c=>c.advisorId===filterAdv);
@@ -715,6 +774,7 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
             <Field label="NEXT ACTION / BLOCKER"><select value={nextForm.nextAction} onChange={e=>setNextForm(p=>({...p,nextAction:e.target.value}))} style={selS}>{NEXT_ACTIONS.map(a=><option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}</select></Field>
             <Field label="DETAIL / NOTE"><textarea value={nextForm.nextNote} onChange={e=>setNextForm(p=>({...p,nextNote:e.target.value}))} style={{...iS,height:72,resize:"vertical"}}/></Field>
             <Field label="DUE DATE"><input type="date" value={nextForm.dueDate} onChange={e=>setNextForm(p=>({...p,dueDate:e.target.value}))} style={iS}/></Field>
+            <Field label="ANNUAL REVIEW DATE"><input type="date" value={nextForm.reviewDate||""} onChange={e=>setNextForm(p=>({...p,reviewDate:e.target.value}))} style={iS}/></Field>
             <button onClick={async()=>{await updateCase(liveCase.id,nextForm);setEditNext(false);}} style={{width:"100%",background:C.pipeline,color:"#fff",border:"none",borderRadius:10,padding:"12px 0",fontWeight:900,cursor:"pointer",fontSize:14,marginTop:4}}>Save</button>
           </Modal>
         )}
@@ -727,7 +787,17 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
             <div>
               <div style={{fontSize:22,fontWeight:900,fontFamily:"Georgia,serif"}}>{liveCase.name}</div>
-              <div style={{fontSize:12,color:C.muted,marginTop:3}}>Advisor: {advisorName(liveCase)}</div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:4,flexWrap:"wrap"}}>
+                <span style={{fontSize:12,color:C.muted}}>Advisor: {advisorName(liveCase)}</span>
+                {liveCase.referralType&&<span style={{fontSize:11,color:"#6B21A8",fontWeight:700,background:"#FDF4FF",padding:"2px 10px",borderRadius:10}}>
+                  Referred by: {liveCase.referralName||liveCase.referralType.replace(/_/g," ")} ({liveCase.referralType.replace(/_/g," ")})
+                </span>}
+                {(()=>{const days=stageAgeDays(liveCase);const ac=ageColor(days,liveCase.stage);return(
+                  <span style={{background:ac.bg,color:ac.text,fontSize:11,fontWeight:800,padding:"2px 10px",borderRadius:10}}>
+                    ⏱ {days} day{days!==1?"s":""} in this stage {days>=14?"— consider advancing":""}
+                  </span>
+                );})}
+              </div>
             </div>
             {liveIdx<STAGES.length-1&&<button onClick={()=>advance(liveCase)} style={{background:C.pipeline,color:"#fff",border:"none",borderRadius:10,padding:"10px 22px",cursor:"pointer",fontWeight:900,fontSize:13}}>Advance to {STAGES[liveIdx+1]?.label} →</button>}
           </div>
@@ -829,18 +899,34 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
       </div>
 
       {showAdd&&(
-        <div style={{background:C.surface,borderRadius:12,padding:18,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.08)",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-          <input value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()} placeholder="Client full name..." style={{...iS,flex:1,minWidth:180}} autoFocus/>
-          {team.length>0 ? (
-            <select value={newAdv} onChange={e=>setNewAdv(e.target.value)} style={{...selS,width:200}}>
-              <option value="">Select advisor…</option>
-              {team.filter(m=>m.active!==false).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+        <div style={{background:C.surface,borderRadius:12,padding:18,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.08)"}}>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
+            <input value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()} placeholder="Client full name..." style={{...iS,flex:1,minWidth:180}} autoFocus/>
+            {team.length>0 ? (
+              <select value={newAdv} onChange={e=>setNewAdv(e.target.value)} style={{...selS,width:200}}>
+                <option value="">Select advisor…</option>
+                {team.filter(m=>m.active!==false).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            ) : (
+              <input value={newAdv} onChange={e=>setNewAdv(e.target.value)} placeholder="Advisor initials..." style={{...iS,width:120}}/>
+            )}
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+            <select value={newRefType} onChange={e=>setNewRefType(e.target.value)} style={{...selS,width:180}}>
+              <option value="">Referral source…</option>
+              <option value="existing_client">👤 Existing Client</option>
+              <option value="professional">💼 Professional (Attorney/Accountant)</option>
+              <option value="walk_in">🚶 Walk-in</option>
+              <option value="website">🌐 Website / Online</option>
+              <option value="social_media">📱 Social Media</option>
+              <option value="event">🎤 Event / Seminar</option>
+              <option value="staff">👥 Staff Member</option>
+              <option value="other">📋 Other</option>
             </select>
-          ) : (
-            <input value={newAdv} onChange={e=>setNewAdv(e.target.value)} placeholder="Advisor initials..." style={{...iS,width:120}}/>
-          )}
-          <button onClick={handleAdd} style={{background:C.pipeline,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",cursor:"pointer",fontWeight:900}}>Add</button>
-          <button onClick={()=>setShowAdd(false)} style={{background:C.faint,color:C.text,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 14px",cursor:"pointer"}}>Cancel</button>
+            <input value={newRefName} onChange={e=>setNewRefName(e.target.value)} placeholder="Referred by (name)…" style={{...iS,flex:1,minWidth:160}}/>
+            <button onClick={handleAdd} style={{background:C.pipeline,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",cursor:"pointer",fontWeight:900}}>Add Case</button>
+            <button onClick={()=>setShowAdd(false)} style={{background:C.faint,color:C.text,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 14px",cursor:"pointer"}}>Cancel</button>
+          </div>
         </div>
       )}
 
@@ -857,6 +943,10 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
                 <span style={{fontWeight:900,fontSize:14}}>{c.name}</span>
                 {c.urgent&&<Badge color={{bg:"#FEE2E2",text:"#991B1B"}}>URGENT</Badge>}
                 <Badge color={{bg:"#F3F4F6",text:"#374151"}}>{advisorName(c)}</Badge>
+                {c.referralType&&<Badge color={{bg:"#FDF4FF",text:"#6B21A8"}}>
+                  {c.referralType==="existing_client"?"👤":c.referralType==="professional"?"💼":c.referralType==="walk_in"?"🚶":c.referralType==="website"?"🌐":c.referralType==="social_media"?"📱":c.referralType==="event"?"🎤":c.referralType==="staff"?"👥":"📋"}
+                  {" "}{c.referralName||c.referralType.replace("_"," ")}
+                </Badge>}
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14}}>{na.icon}</span>
@@ -869,6 +959,12 @@ function PipelineModule({cases,addCase,updateCase,team,documents=[]}){
               <div style={{height:5,background:"#F3F4F6",borderRadius:3,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${pct(c)}%`,background:sc.dot,borderRadius:3}}/></div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>{pct(c)}% done</div>
             </div>
+            {(()=>{const days=stageAgeDays(c);const ac=ageColor(days,c.stage);return(
+              <div style={{textAlign:"center",minWidth:56,background:ac.bg,borderRadius:8,padding:"6px 8px"}}>
+                <div style={{fontSize:16,fontWeight:900,color:ac.text,lineHeight:1}}>{days}</div>
+                <div style={{fontSize:8,fontWeight:700,color:ac.dot,letterSpacing:0.5}}>DAYS</div>
+              </div>
+            );})}
             <span style={{color:C.muted,fontSize:18}}>›</span>
           </div>
         );})}
