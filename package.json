@@ -17,6 +17,16 @@
   "eslintConfig": {
     "extends": ["react-app"]
   },
+  "docxtemplater": "^3.47.0",
+"pizzip": "^3.1.7"
+```
+Then run `npm install` locally before pushing.
+
+**The push flow:**
+```
+git add .
+git commit -m "Add document generation function and expanded case form"
+git push
   "browserslist": {
     "production": [">0.2%", "not dead", "not op_mini all"],
     "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
